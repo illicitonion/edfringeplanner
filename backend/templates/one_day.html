@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>{{date}} - edfringeplanner</title>
+
+	<style type="text/css">
+	body {
+		font-family: "Open sans", sans-serif;
+	}
+
+	.events {
+		display: flex;
+	}
+
+	.calendar-card {
+		position: relative;
+		width: 300px;
+		flex: 1;
+		display: flex;
+		height: 100%;
+	}
+
+	.calendar-card .category {
+		writing-mode: vertical-lr;
+		text-orientation: upright;
+		float: left;
+		border-right: 1px solid black;
+		margin-right: 3px;
+		font-size: 0.7em;
+		letter-spacing: -5px;
+	}
+
+	.calendar-card .title {
+		font-size: 1.1em;
+		font-weight: bold;
+	}
+
+	.calendar-card.booked, .calendar-card.booked a {
+		background-color: black;
+		color: white;
+		text-decoration: none;
+	}
+
+	.calendar-card.important0, .calendar-card.important0 a {
+		background-color: #00bd22;
+		text-decoration: none;
+	}
+
+	.calendar-card.important1, .calendar-card.important1 a {
+		background-color: #85ff9b;
+		text-decoration: none;
+	}
+
+	.calendar-card.important2, .calendar-card.important2 a {
+		background-color: #c8f9d1;
+		text-decoration: none;
+	}
+
+	.calendar-card .status-bar {
+		position: absolute;
+		bottom: 6px;
+		right: 2px;
+		height: 1em;
+		font-weight: bold;
+		text-align: right;
+	}
+
+	.calendar {
+		display: flex;
+		height: 2640px;
+	}
+
+	.calendar .column {
+		display: flex;
+		flex-direction: column;
+		margin-right: 5px;
+	}
+
+	.calendar .cell-hour {
+		flex: 60;
+		height: 110px;
+	}
+	</style>
+</head>
+<body>
+	{{date}}
+
+	<div class="calendar">
+		<div class="column">
+			{% for i in range (5, 29) %}
+			<div class="cell cell-hour">
+				{{ "{:02d}".format(i % 24) }}:00
+			</div>
+			{% endfor %}
+		</div>
+		{% for column in event_columns %}
+			<div class="column">
+				{% for event_or_padding in column %}
+					<div style="flex: {{event_or_padding.one_minute_chunks}};">
+					{% if event_or_padding.event is not none %}
+						{% with event = event_or_padding.event %}
+							{% include "event.html" %}
+						{% endwith %}
+					{% endif %}
+					</div>
+				{% endfor %}
+			</div>
+		{% endfor %}
+	</div>
+	</table>
+</body>
+</html>

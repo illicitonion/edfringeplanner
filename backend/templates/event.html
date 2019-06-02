@@ -1,0 +1,15 @@
+<div class="calendar-card {{ event.css_class }}" style="height: {{2640 * event.duration.total_seconds() / one_day.total_seconds()}}px;">
+	<div class="category">{{event.category}}</div>
+	<div class="event-info">
+		<div class="title">{{event.title}}</div>
+		<div class="location"><a href="{{event.venue.google_maps_url}}">{{event.venue.name}}</a></div>
+		<div class="time">{{event.start_edinburgh.strftime("%H:%M")}} - {{(event.start_edinburgh + event.duration).strftime("%H:%M")}}</div>
+		<div class="status-bar">
+			{% if event.interest == "Booked" %}
+				Booked
+			{% else %}
+				Mark as: <a href="/love/{{event.show_id}}">Love</a>, <a href="/like/{{event.show_id}}">Like</a>, <a href="/booked/{{event.performance_id}}">Booked</a>
+			{% endif %}
+		</div>
+	</div>
+</div>

@@ -1,0 +1,14 @@
+appdirs==1.4.3
+attrs==19.1.0
+black==19.3b0
+Click==7.0
+Flask==1.0.3
+itsdangerous==1.1.0
+Jinja2==2.10.1
+MarkupSafe==1.1.1
+pkg-resources==0.0.0
+psycopg2==2.8.2
+pytz==2019.1
+selenium==3.141.0
+urllib3==1.25.3
+Werkzeug==0.15.4

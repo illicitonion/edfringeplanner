@@ -1,0 +1,217 @@
+from __future__ import annotations
+
+import datetime
+from collections import defaultdict
+from dataclasses import dataclass
+
+import pytz
+
+from db import cursor
+
+
+@dataclass(eq=True, frozen=True)
+class Venue:
+    name: str
+    google_maps_url: str
+
+
+@dataclass(eq=True, frozen=True)
+class Event:
+    show_id: int
+    title: str
+    category: str
+    venue: Venue
+    duration: datetime.timedelta
+    start_edinburgh: datetime.datetime
+    interest: str
+    performance_id: int
+    booked: bool
+
+    @property
+    def css_class(self):
+        if self.booked:
+            return "booked"
+        elif self.interest == "Must":
+            return "important0"
+        elif self.interest == "Like":
+            return "important1"
+        else:
+            return "important2"
+
+    def intersects(self, other: Event) -> bool:
+        if self.start_edinburgh <= other.start_edinburgh:
+            return self.start_edinburgh + self.duration > other.start_edinburgh
+        else:
+            return self.start_edinburgh < other.start_edinburgh + other.duration
+
+
+@dataclass
+class EventOrPadding:
+    event: Event
+    one_minute_chunks: int
+
+
+def duration_to_chunks(duration: datetime.timedelta):
+    return duration.total_seconds() / 60
+
+
+def bin_pack_events(events, start_of_day, end_of_day):
+    # TODO: Trim morning padding to start of first event
+    categories_to_columns = defaultdict(list)
+
+    def category(event: Event) -> str:
+        if event.booked:
+            return "booked"
+        else:
+            return event.category.lower()
+
+    def importance(event_or_padding: EventOrPadding) -> int:
+        event = event_or_padding.event
+        if event is None:
+            return 0
+        elif event.booked:
+            return 99999
+        elif event.interest == "Booked":
+            return 0
+        elif event.interest == "Must":
+            return 1000
+        elif event.interest == "Like":
+            return 100
+        else:
+            return 1
+
+    for event in events:
+        columns = categories_to_columns[category(event)]
+        for column in columns:
+            last_event = column[-1].event
+            last_event_end = last_event.start_edinburgh + last_event.duration
+            if last_event_end < event.start_edinburgh:
+                if last_event_end < event.start_edinburgh:
+                    column.append(
+                        EventOrPadding(
+                            None,
+                            duration_to_chunks(event.start_edinburgh - last_event_end),
+                        )
+                    )
+                column.append(EventOrPadding(event, duration_to_chunks(event.duration)))
+                break
+        else:
+            new_column = [
+                EventOrPadding(
+                    None, duration_to_chunks(event.start_edinburgh - start_of_day)
+                ),
+                EventOrPadding(event, duration_to_chunks(event.duration)),
+            ]
+            columns.append(new_column)
+    for columns in categories_to_columns.values():
+        for column in columns:
+            last_event = column[-1].event
+            last_event_end = last_event.start_edinburgh + last_event.duration
+            if last_event_end < end_of_day:
+                column.append(
+                    EventOrPadding(
+                        None, duration_to_chunks(end_of_day - last_event_end)
+                    )
+                )
+
+    columns = []
+    columns.extend(categories_to_columns.pop("booked", []))
+    for category_columns in categories_to_columns.values():
+        columns.extend(category_columns)
+    columns.sort(key=lambda c: sum(importance(event) for event in c), reverse=True)
+    return columns
+
+
+def load_events(date):
+    # TODO: Don't hard-code time zones
+    start_of_day = datetime.datetime.strptime(
+        "{} 05:00:00 +0100".format(date), "%Y-%m-%d %H:%M:%S %z"
+    )
+    end_of_day = datetime.datetime.strptime(
+        "{} 05:00:00 +0100".format(date + datetime.timedelta(days=1)),
+        "%Y-%m-%d %H:%M:%S %z",
+    )
+
+    events = []
+    booked_events = []
+    with cursor() as cur:
+        # TODO: Filter on per-user interest
+        # TODO: Filter on start/end time?
+        # TODO: Order by priority
+        # TODO: Filter by user's visit dates
+        cur.execute(
+            "SELECT shows.id, shows.title, shows.category, shows.duration, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, bookings.id "
+            + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
+            + "INNER JOIN venues ON shows.venue_id = venues.id "
+            + "LEFT JOIN interests ON shows.id = interests.show_id "
+            + "LEFT JOIN bookings ON performances.id = bookings.performance_id "
+            + "ORDER BY performances.datetime_utc ASC, shows.title ASC"
+        )
+        rows = cur.fetchall()
+        for row in rows:
+            # TODO: Shows which overlap around the day change
+            (
+                show_id,
+                title,
+                category,
+                duration,
+                datetime_utc,
+                venue_name,
+                venue_latlong,
+                interest,
+                performance_id,
+                booking_id,
+            ) = row
+            start_edinburgh = datetime_utc.astimezone(pytz.timezone("Europe/London"))
+            end_edinburgh = start_edinburgh + duration
+            if start_edinburgh >= end_of_day or end_edinburgh <= start_of_day:
+                continue
+            event = Event(
+                show_id=show_id,
+                title=title,
+                category=category,
+                venue=Venue(
+                    name=venue_name,
+                    google_maps_url="https://www.google.co.uk/maps/search/{}".format(
+                        venue_latlong
+                    ),
+                ),
+                duration=duration,
+                start_edinburgh=start_edinburgh,
+                interest=interest,
+                performance_id=performance_id,
+                booked=booking_id is not None,
+            )
+            # TODO: Note last chances
+            events.append(event)
+            if event.booked:
+                booked_events.append(event)
+    events = [
+        event
+        for event in events
+        if event.booked
+        or not any(event.intersects(booked_event) for booked_event in booked_events)
+    ]
+    return bin_pack_events(events, start_of_day, end_of_day)
+
+
+def set_interest(show_id, interest):
+    with cursor() as cur:
+        cur.execute(
+            "INSERT INTO interests (show_id, user_id, interest) VALUES (%(show_id)s, %(user_id)s, %(interest)s) "
+            + "ON CONFLICT ON CONSTRAINT interests_show_id_user_id_key DO "
+            + "UPDATE SET interest = %(interest)s where interests.show_id = %(show_id)s and interests.user_id = %(user_id)s",
+            dict(show_id=show_id, user_id=1, interest=interest),
+        )
+
+
+def mark_booked(performance_id):
+    with cursor() as cur:
+        cur.execute(
+            "INSERT INTO bookings (performance_id, user_id) VALUES (%(performance_id)s, %(user_id)s) "
+            + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",
+            dict(performance_id=performance_id, user_id=1),
+        )
+        cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
+        show_id = cur.fetchone()[0]
+    set_interest(show_id, "Booked")

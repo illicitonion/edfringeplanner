@@ -50,12 +50,14 @@ def one_day(date_str):
     except ValueError:
         return "Invalid date in URL"
 
-    event_columns = load_events(user_id(), date)
+    event_columns, first_hour, number_of_hours = load_events(user_id(), date)
     return render_template(
         "one_day.html",
         date=date,
         event_columns=event_columns,
         one_day=datetime.timedelta(days=1),
+        first_hour=first_hour,
+        number_of_hours=number_of_hours,
     )
 
 

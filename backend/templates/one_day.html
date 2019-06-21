@@ -92,7 +92,7 @@
 
 	<div class="calendar">
 		<div class="column">
-			{% for i in range (5, 29) %}
+			{% for i in range (first_hour, first_hour + number_of_hours) %}
 			<div class="cell cell-hour">
 				{{ "{:02d}".format(i % 24) }}:00
 			</div>

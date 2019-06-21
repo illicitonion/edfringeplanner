@@ -59,8 +59,7 @@ def duration_to_chunks(duration: datetime.timedelta):
     return duration.total_seconds() / 60
 
 
-def bin_pack_events(events, start_of_day, end_of_day):
-    # TODO: Trim morning padding to start of first event
+def bin_pack_events(events):
     categories_to_columns = defaultdict(list)
 
     def category(event: Event) -> str:
@@ -87,6 +86,14 @@ def bin_pack_events(events, start_of_day, end_of_day):
             return 100
         else:
             return 1
+
+    start_of_day = min(event.start_edinburgh for event in events).replace(
+        minute=0, second=0
+    )
+    end_of_day = max(
+        event.start_edinburgh + event.duration for event in events
+    ).replace(minute=0, second=0) + datetime.timedelta(hours=1)
+    number_of_hours = int((end_of_day - start_of_day).total_seconds()) // 3600
 
     for event in events:
         columns = categories_to_columns[category(event)]
@@ -127,7 +134,7 @@ def bin_pack_events(events, start_of_day, end_of_day):
     for category_columns in categories_to_columns.values():
         columns.extend(category_columns)
     columns.sort(key=lambda c: sum(importance(event) for event in c), reverse=True)
-    return columns
+    return columns, start_of_day.hour, number_of_hours
 
 
 def load_events(user_id, date):
@@ -209,7 +216,7 @@ def load_events(user_id, date):
         if event.booked
         or not any(event.intersects(booked_event) for booked_event in booked_events)
     ]
-    return bin_pack_events(events, start_of_day, end_of_day)
+    return bin_pack_events(events)
 
 
 def set_interest(user_id, show_id, interest):

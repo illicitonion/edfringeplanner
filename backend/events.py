@@ -24,6 +24,7 @@ class Event:
     venue: Venue
     duration: datetime.timedelta
     start_edinburgh: datetime.datetime
+    edfringe_url: str
     interest: str
     performance_id: int
     booked: bool
@@ -153,7 +154,7 @@ def load_events(user_id, date):
     with cursor() as cur:
         # TODO: Filter on start/end time?
         cur.execute(
-            "SELECT shows.id, shows.title, shows.category, shows.duration, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
+            "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
             + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
             + "INNER JOIN venues ON shows.venue_id = venues.id "
             + "INNER JOIN interests ON shows.id = interests.show_id "
@@ -172,6 +173,7 @@ def load_events(user_id, date):
                 title,
                 category,
                 duration,
+                edfringe_url,
                 datetime_utc,
                 venue_name,
                 venue_latlong,
@@ -197,6 +199,7 @@ def load_events(user_id, date):
                         venue_latlong
                     ),
                 ),
+                edfringe_url=edfringe_url,
                 duration=duration,
                 start_edinburgh=start_edinburgh,
                 interest=interest,

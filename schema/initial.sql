@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS performances (
 
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  password_hash VARCHAR,
   start_datetime_utc TIMESTAMP WITH TIME ZONE,
   end_datetime_utc TIMESTAMP WITH TIME ZONE
 );

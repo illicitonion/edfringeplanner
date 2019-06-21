@@ -122,7 +122,7 @@ def bin_pack_events(events, start_of_day, end_of_day):
     return columns
 
 
-def load_events(date):
+def load_events(user_id, date):
     # TODO: Don't hard-code time zones
     start_of_day = datetime.datetime.strptime(
         "{} 05:00:00 +0100".format(date), "%Y-%m-%d %H:%M:%S %z"
@@ -140,12 +140,15 @@ def load_events(date):
         # TODO: Order by priority
         # TODO: Filter by user's visit dates
         cur.execute(
-            "SELECT shows.id, shows.title, shows.category, shows.duration, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, bookings.id "
+            "SELECT shows.id, shows.title, shows.category, shows.duration, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
             + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
             + "INNER JOIN venues ON shows.venue_id = venues.id "
-            + "LEFT JOIN interests ON shows.id = interests.show_id "
-            + "LEFT JOIN bookings ON performances.id = bookings.performance_id "
-            + "ORDER BY performances.datetime_utc ASC, shows.title ASC"
+            + "INNER JOIN interests ON shows.id = interests.show_id "
+            + "INNER JOIN users ON users.id = interests.user_id "
+            + "LEFT JOIN (SELECT * FROM bookings WHERE user_id = %(user_id)s) user_bookings ON performances.id = user_bookings.performance_id "
+            + "WHERE users.id = %(user_id)s "
+            + "ORDER BY performances.datetime_utc ASC, shows.title ASC",
+            {"user_id": user_id},
         )
         rows = cur.fetchall()
         for row in rows:
@@ -195,23 +198,23 @@ def load_events(date):
     return bin_pack_events(events, start_of_day, end_of_day)
 
 
-def set_interest(show_id, interest):
+def set_interest(user_id, show_id, interest):
     with cursor() as cur:
         cur.execute(
             "INSERT INTO interests (show_id, user_id, interest) VALUES (%(show_id)s, %(user_id)s, %(interest)s) "
             + "ON CONFLICT ON CONSTRAINT interests_show_id_user_id_key DO "
             + "UPDATE SET interest = %(interest)s where interests.show_id = %(show_id)s and interests.user_id = %(user_id)s",
-            dict(show_id=show_id, user_id=1, interest=interest),
+            dict(show_id=show_id, user_id=user_id, interest=interest),
         )
 
 
-def mark_booked(performance_id):
+def mark_booked(user_id, performance_id):
     with cursor() as cur:
         cur.execute(
             "INSERT INTO bookings (performance_id, user_id) VALUES (%(performance_id)s, %(user_id)s) "
             + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",
-            dict(performance_id=performance_id, user_id=1),
+            dict(performance_id=performance_id, user_id=user_id),
         )
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
         show_id = cur.fetchone()[0]
-    set_interest(show_id, "Booked")
+    set_interest(user_id, show_id, "Booked")

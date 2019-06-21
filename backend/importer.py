@@ -53,7 +53,7 @@ def parse_date_time(date, time):
     return local.astimezone(pytz.utc)
 
 
-def main(path):
+def main(email, path):
     with open(path, encoding="utf_16") as f:
         reader = csv.reader(f, delimiter="\t")
         headings = tuple(next(reader))
@@ -73,6 +73,12 @@ def main(path):
             )
 
         with cursor() as cur:
+            cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError("Unknown user: {}".format(email))
+            user_id = row[0]
+
             for row in reader:
                 (
                     title,
@@ -111,6 +117,12 @@ def main(path):
                 )
                 show_id = cur.fetchone()[0]
 
+                cur.execute(
+                    "INSERT INTO interests (show_id, user_id, interest) VALUES (%s, %s, %s) "
+                    + "ON CONFLICT ON CONSTRAINT interests_show_id_user_id_key DO NOTHING",
+                    (show_id, user_id, "Like"),
+                )
+
                 for date in dates:
                     for time in times:
                         cur.execute(
@@ -121,7 +133,7 @@ def main(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: {} path/to/csv".format(sys.argv[0]), file=sys.stderr)
+    if len(sys.argv) != 3:
+        print("Usage: {} email path/to/csv".format(sys.argv[0]), file=sys.stderr)
         sys.exit(1)
-    main(sys.argv[1])
+    main(*sys.argv[1:])

@@ -82,7 +82,7 @@ def bin_pack_events(events):
             return 1000
         elif event.interest == "Like":
             if event.last_chance:
-                return 1000
+                return 200
             return 100
         else:
             return 1

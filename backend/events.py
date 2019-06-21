@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
@@ -26,12 +27,15 @@ class Event:
     interest: str
     performance_id: int
     booked: bool
+    last_chance: bool = False
 
     @property
     def css_class(self):
         if self.booked:
             return "booked"
         elif self.interest == "Must":
+            if self.last_chance:
+                return "lastchance"
             return "important0"
         elif self.interest == "Like":
             return "important1"
@@ -74,8 +78,12 @@ def bin_pack_events(events, start_of_day, end_of_day):
         elif event.interest == "Booked":
             return 0
         elif event.interest == "Must":
+            if event.last_chance:
+                return 10000
             return 1000
         elif event.interest == "Like":
+            if event.last_chance:
+                return 1000
             return 100
         else:
             return 1
@@ -134,6 +142,7 @@ def load_events(user_id, date):
 
     events = []
     booked_events = []
+    later_event_ids = set()
     with cursor() as cur:
         # TODO: Filter on start/end time?
         cur.execute(
@@ -165,7 +174,11 @@ def load_events(user_id, date):
             ) = row
             start_edinburgh = datetime_utc.astimezone(pytz.timezone("Europe/London"))
             end_edinburgh = start_edinburgh + duration
-            if start_edinburgh >= end_of_day or end_edinburgh <= start_of_day:
+            if end_edinburgh <= start_of_day:
+                continue
+            if start_edinburgh >= end_of_day:
+                # TODO: Filter out future conflicts
+                later_event_ids.add(show_id)
                 continue
             event = Event(
                 show_id=show_id,
@@ -183,12 +196,15 @@ def load_events(user_id, date):
                 performance_id=performance_id,
                 booked=booking_id is not None,
             )
-            # TODO: Note last chances
             events.append(event)
             if event.booked:
                 booked_events.append(event)
+
+    def maybe_last_chance(event):
+        return event if event.show_id in later_event_ids else dataclasses.replace(event, last_chance=True)
+
     events = [
-        event
+        maybe_last_chance(event)
         for event in events
         if event.booked
         or not any(event.intersects(booked_event) for booked_event in booked_events)

@@ -8,6 +8,7 @@
 			{% if event.interest == "Booked" %}
 				Booked
 			{% else %}
+			{% if event.last_chance %}Last Chance!<br />{% endif %}
 				Mark as: <a href="/love/{{event.show_id}}">Love</a>, <a href="/like/{{event.show_id}}">Like</a>, <a href="/booked/{{event.performance_id}}">Booked</a>
 			{% endif %}
 		</div>

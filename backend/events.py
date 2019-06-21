@@ -135,10 +135,7 @@ def load_events(user_id, date):
     events = []
     booked_events = []
     with cursor() as cur:
-        # TODO: Filter on per-user interest
         # TODO: Filter on start/end time?
-        # TODO: Order by priority
-        # TODO: Filter by user's visit dates
         cur.execute(
             "SELECT shows.id, shows.title, shows.category, shows.duration, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
             + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
@@ -147,6 +144,7 @@ def load_events(user_id, date):
             + "INNER JOIN users ON users.id = interests.user_id "
             + "LEFT JOIN (SELECT * FROM bookings WHERE user_id = %(user_id)s) user_bookings ON performances.id = user_bookings.performance_id "
             + "WHERE users.id = %(user_id)s "
+            + "AND performances.datetime_utc > users.start_datetime_utc AND performances.datetime_utc < users.end_datetime_utc "
             + "ORDER BY performances.datetime_utc ASC, shows.title ASC",
             {"user_id": user_id},
         )

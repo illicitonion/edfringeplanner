@@ -4,6 +4,7 @@ import dataclasses
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import List
 
 import pytz
 
@@ -56,6 +57,12 @@ class EventOrPadding:
     one_minute_chunks: int
 
 
+@dataclass
+class Column:
+    header: str
+    events_or_padding: List[EventOrPadding]
+
+
 def duration_to_chunks(duration: datetime.timedelta):
     return duration.total_seconds() / 60
 
@@ -65,9 +72,9 @@ def bin_pack_events(events):
 
     def category(event: Event) -> str:
         if event.booked:
-            return "booked"
+            return "Booked"
         else:
-            return event.category.lower()
+            return event.category
 
     def importance(event_or_padding: EventOrPadding) -> int:
         event = event_or_padding.event
@@ -131,10 +138,13 @@ def bin_pack_events(events):
                 )
 
     columns = []
-    columns.extend(categories_to_columns.pop("booked", []))
-    for category_columns in categories_to_columns.values():
-        columns.extend(category_columns)
-    columns.sort(key=lambda c: sum(importance(event) for event in c), reverse=True)
+    for category, category_columns in categories_to_columns.items():
+        for column in category_columns:
+            columns.append(Column(header=category, events_or_padding=column))
+    columns.sort(
+        key=lambda c: sum(importance(event) for event in c.events_or_padding),
+        reverse=True,
+    )
     return columns, start_of_day.hour, number_of_hours
 
 
@@ -211,7 +221,11 @@ def load_events(user_id, date):
                 booked_events.append(event)
 
     def maybe_last_chance(event):
-        return event if event.show_id in later_event_ids else dataclasses.replace(event, last_chance=True)
+        return (
+            event
+            if event.show_id in later_event_ids
+            else dataclasses.replace(event, last_chance=True)
+        )
 
     events = [
         maybe_last_chance(event)

@@ -1,5 +1,4 @@
 <div class="calendar-card {{ event.css_class }}" style="height: {{2640 * event.duration.total_seconds() / one_day.total_seconds()}}px;">
-	<div class="category">{{event.category}}</div>
 	<div class="event-info">
 		<div class="title"><a href="https://tickets.edfringe.com{{event.edfringe_url}}">{{event.title}}</a></div>
 		<div class="location"><a href="{{event.venue.google_maps_url}}">{{event.venue.name}}</a></div>

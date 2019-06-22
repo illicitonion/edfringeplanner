@@ -94,10 +94,14 @@
         left: 0;
         z-index: 10;
     }
+
+    .hiding-bar a:visited {
+		color: blue;
+    }
 	</style>
 </head>
 <body>
-	{{date}}
+	{{date}}{% include "hiding-bar.html" %}
 	<div class="calendar">
         <!-- TODO: Work out why this disappears about 10 columns in -->
 		<div class="column left-header">
@@ -110,7 +114,7 @@
 		{% for column in event_columns %}
 			<div class="column">
                 <div class="header">
-                    {{ column.header }}
+                    {{ column.header }} {% if column.header != "Booked" %}<a href="{{url_hiding(column.header)}}">x</a>{% endif %}
                 </div>
 				{% for event_or_padding in column.events_or_padding %}
 					<div style="flex: {{event_or_padding.one_minute_chunks}};">

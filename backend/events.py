@@ -4,7 +4,8 @@ import dataclasses
 import datetime
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import List
+from sortedcontainers import SortedSet
+from typing import List, Set
 
 import pytz
 
@@ -155,7 +156,7 @@ def bin_pack_events(events):
     return columns, start_of_day.hour, number_of_hours
 
 
-def load_events(user_id, date):
+def load_events(user_id, date, filter: Filter):
     # TODO: Don't hard-code time zones
     start_of_day = datetime.datetime.strptime(
         "{} 05:00:00 +0100".format(date), "%Y-%m-%d %H:%M:%S %z"
@@ -238,7 +239,7 @@ def load_events(user_id, date):
         maybe_last_chance(event)
         for event in events
         if event.booked
-        or not any(event.intersects(booked_event) for booked_event in booked_events)
+        or (filter.show(event) and not any(event.intersects(booked_event) for booked_event in booked_events))
     ]
     return bin_pack_events(events)
 
@@ -263,3 +264,24 @@ def mark_booked(user_id, performance_id):
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
         show_id = cur.fetchone()[0]
     set_interest(user_id, show_id, "Booked")
+
+
+@dataclass(frozen=True)
+class Filter:
+    show_like: bool
+    show_must: bool
+    show_booked: bool
+    hidden_categories: SortedSet[str]
+
+    def show(self, event: Event):
+        if event.booked or event.last_chance:
+            return True
+        if event.interest == "Like" and not self.show_like:
+            return False
+        if event.interest == "Must" and not self.show_must:
+            return False
+        if event.interest == "Booked" and not self.show_booked:
+            return False
+        if event.category in self.hidden_categories:
+            return False
+        return True

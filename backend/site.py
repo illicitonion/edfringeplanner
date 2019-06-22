@@ -9,9 +9,10 @@ from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import Flask, render_template, request
 from flask_login import LoginManager, UserMixin, login_user, login_required
+from sortedcontainers import SortedSet
 
 import db
-from events import load_events, mark_booked, set_interest
+from events import load_events, mark_booked, set_interest, Filter
 
 app = Flask("edfringeplanner")
 app.secret_key = os.environ["EDFRINGEPLANNER_SECRET_KEY"].encode("utf-8")
@@ -50,7 +51,28 @@ def one_day(date_str):
     except ValueError:
         return "Invalid date in URL"
 
-    event_columns, first_hour, number_of_hours = load_events(user_id(), date)
+    show_likes = True
+    show_must = True
+    show_booked = True
+    hidden_categories = set()
+    for hidden in request.args.getlist("hidden"):
+        if hidden == "like":
+            show_likes = False
+        elif hidden == "love":
+            show_must = False
+        elif hidden == "booked":
+            show_booked = False
+        else:
+            hidden_categories.add(hidden)
+
+    display_filter = Filter(
+        show_like=show_likes,
+        show_must=show_must,
+        show_booked=show_booked,
+        hidden_categories=SortedSet(hidden_categories),
+    )
+
+    event_columns, first_hour, number_of_hours = load_events(user_id(), date, display_filter)
     return render_template(
         "one_day.html",
         date=date,
@@ -58,6 +80,9 @@ def one_day(date_str):
         first_hour=first_hour,
         number_of_hours=number_of_hours,
         hour_height_px=200,
+        url_hiding=lambda s: day_url(hiding=s),
+        url_showing=lambda s: day_url(showing=s),
+        display_filter=display_filter,
     )
 
 
@@ -114,6 +139,17 @@ def is_safe_url(target):
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ("http", "https") and ref_url.netloc == test_url.netloc
+
+
+def day_url(showing=None, hiding=None):
+    hidden = set(request.args.getlist("hidden"))
+    if showing is not None:
+        hidden.remove(showing)
+    if hiding is not None:
+        hidden.add(hiding)
+    parts = "&".join("hidden={}".format(h) for h in sorted(hidden))
+    query = "?{}".format(parts) if parts else ""
+    return "{}{}".format(request.path, query)
 
 
 def main():

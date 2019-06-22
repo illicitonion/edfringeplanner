@@ -55,9 +55,9 @@ def one_day(date_str):
         "one_day.html",
         date=date,
         event_columns=event_columns,
-        one_day=datetime.timedelta(days=1),
         first_hour=first_hour,
         number_of_hours=number_of_hours,
+        hour_height_px=200,
     )
 
 

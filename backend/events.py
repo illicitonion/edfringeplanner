@@ -32,6 +32,13 @@ class Event:
     last_chance: bool = False
 
     @property
+    def title_maybe_truncated(self):
+        limit = 50
+        if len(self.title) > limit:
+            return self.title[:limit - 1] + "…"
+        return self.title
+
+    @property
     def css_class(self):
         if self.booked:
             return "booked"

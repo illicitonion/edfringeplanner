@@ -1,6 +1,6 @@
-<div class="calendar-card {{ event.css_class }}" style="height: {{2640 * event.duration.total_seconds() / one_day.total_seconds()}}px;">
+<div class="calendar-card {{ event.css_class }}" style="height: {{hour_height_px * event.duration.total_seconds() / 3600}}px;">
 	<div class="event-info">
-		<div class="title"><a href="https://tickets.edfringe.com{{event.edfringe_url}}">{{event.title}}</a></div>
+		<div class="title"><a href="https://tickets.edfringe.com{{event.edfringe_url}}">{{event.title_maybe_truncated}}</a></div>
 		<div class="location"><a href="{{event.venue.google_maps_url}}">{{event.venue.name}}</a></div>
 		<div class="time">{{event.start_edinburgh.strftime("%H:%M")}} - {{(event.start_edinburgh + event.duration).strftime("%H:%M")}}</div>
 		<div class="status-bar">
@@ -8,7 +8,7 @@
 				Booked
 			{% else %}
 			{% if event.last_chance %}Last Chance!<br />{% endif %}
-				Mark as: <a href="/love/{{event.show_id}}">Love</a>, <a href="/like/{{event.show_id}}">Like</a>, <a href="/booked/{{event.performance_id}}">Booked</a>
+				Mark as: <a href="/love/{{event.show_id}}">❤️</a>, <a href="/like/{{event.show_id}}">👍</a>, <a href="/booked/{{event.performance_id}}">Booked</a>
 			{% endif %}
 		</div>
 	</div>

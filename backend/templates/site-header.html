@@ -1,0 +1,27 @@
+<div class="site-header">
+    <div class="container">
+        <div class="logo"><a href="/">Edinburgh Fringe Planner</a></div>
+        <div class="heading">
+            Plan your fringe - edfringeplanner takes your favourites from <a href="https://www.edfringe.com/">the edfringe website</a> and helps you work out what to do when.
+            <br/>
+            {% if user %}
+            <select onchange="if (this.value != 'browse') { window.location = `/day/${this.value}?hidden=booked`; }">
+                <option value="browse">Browse days</option>
+                {% for visit_day in user.visit_days %}
+                {% with day_yyyymmdd = visit_day.strftime("%Y-%m-%d") %}
+                <option value="{{day_yyyymmdd}}" {% if day_yyyymmdd == date_yyyymmdd %}selected="selected"{% endif %}>{{visit_day.strftime("%a %-d")}}</option>
+                {% endwith %}
+                {% endfor %}
+            </select>
+            | Import your favourites | Change your settings
+            {% else %}
+            <a href="/signup">Sign up</a> | Log in:
+            <form action="/login" method="POST">
+                <input type="email" placeholder="Email address" name="email" />
+                <input type="password" placeholder="Password" name="password" />
+                <input type="submit" value="Log in" />
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>

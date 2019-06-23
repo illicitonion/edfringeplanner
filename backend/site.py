@@ -7,7 +7,7 @@ import os
 import flask_login
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from flask import Flask, render_template, request
+from flask import Flask, request
 from flask_login import LoginManager, UserMixin, login_user, login_required
 from sortedcontainers import SortedSet
 
@@ -22,9 +22,32 @@ login_manager.login_view = "login"
 login_manager.init_app(app)
 
 
+def render_template(template, **kwargs):
+    return flask.render_template(
+        template, **{**kwargs, "user": flask_login.current_user}
+    )
+
+
 class User(UserMixin):
     def __init__(self, id):
         self.id = id
+
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT start_datetime_utc, end_datetime_utc FROM users WHERE id = %s",
+                (id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise ValueError("Unknown user: {}".format(id))
+        self.visit_days = [
+            date for date in self.dates_between(row[0].date(), row[1].date())
+        ]
+
+    @staticmethod
+    def dates_between(start_date, end_date):
+        for i in range((end_date - start_date).days):
+            yield start_date + datetime.timedelta(days=i)
 
 
 @login_manager.user_loader
@@ -38,7 +61,7 @@ def user_id():
 
 @app.route("/")
 def index():
-    return "Hello"
+    return render_template("index.html")
 
 
 @app.route("/day/<date_str>")
@@ -78,6 +101,7 @@ def one_day(date_str):
     return render_template(
         "one_day.html",
         date=date,
+        date_yyyymmdd=date.strftime("%Y-%m-%d"),
         event_columns=event_columns,
         first_hour=first_hour,
         number_of_hours=number_of_hours,

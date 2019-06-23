@@ -1,0 +1,122 @@
+body {
+    font-family: "Open sans", sans-serif;
+}
+
+.site-header {
+    background-color: #EAEAEA;
+    margin-bottom: 5px;
+}
+
+.site-header .container {
+    margin-left: 10em;
+    margin-right: 10em;
+    display: flex;
+}
+
+.site-header .logo {
+    background-color: #ae50d2;
+    color: white;
+    font-size: 2.5em;
+    padding-left: 6px;
+    margin-right: 10px;
+    flex: 11;
+}
+
+.site-header .logo a {
+    text-decoration: none;
+    color: white;
+}
+
+.site-header .heading {
+    flex: 40;
+    color: #ae50d2;
+    line-height: 3;
+}
+
+.site-header .heading form {
+    display: inline;
+}
+
+.events {
+    display: flex;
+}
+
+.calendar-card {
+    position: relative;
+    width: 150px;
+    flex: 1;
+    display: flex;
+    height: 100%;
+}
+
+.event-info {
+    padding-left: 5px;
+}
+
+.calendar-card .title {
+    font-size: 1.1em;
+    font-weight: bold;
+}
+
+.calendar-card.booked, .calendar-card.booked a {
+    background-color: black;
+    color: white;
+    text-decoration: none;
+}
+
+.calendar-card.lastchance, .calendar-card.important0 a {
+    background-color: red;
+    text-decoration: none;
+}
+
+.calendar-card.important0, .calendar-card.important0 a {
+    background-color: #00bd22;
+    text-decoration: none;
+}
+
+.calendar-card.important1, .calendar-card.important1 a {
+    background-color: #85ff9b;
+    text-decoration: none;
+}
+
+.calendar-card.important2, .calendar-card.important2 a {
+    background-color: #c8f9d1;
+    text-decoration: none;
+}
+
+.calendar-card .status-bar {
+    position: absolute;
+    bottom: 0px;
+    right: 2px;
+    font-weight: bold;
+    text-align: right;
+    font-size: 0.8em;
+}
+
+.calendar .column {
+    display: flex;
+    flex-direction: column;
+    margin-right: 5px;
+}
+
+.calendar .header {
+    position: sticky;
+    top: 0;
+    text-align: center;
+    z-index: 10;
+    font-size: 0.9em;
+}
+
+.calendar .left-header {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+}
+
+.hiding-bar {
+    margin-bottom: 5px;
+}
+
+.hiding-bar a:visited {
+    color: blue;
+}

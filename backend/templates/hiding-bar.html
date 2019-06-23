@@ -1,8 +1,0 @@
-<span class="hiding-bar">
-- {% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
-- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
-- {% if display_filter.show_booked %}<a href="{{url_hiding('booked')}}">Hide{%else%}<a href="{{url_showing('booked')}}">Show{%endif%} Booked (another time) events</a>
-{% for hidden_category in display_filter.hidden_categories %}
-  - <a href="{{url_showing(hidden_category)}}">Show {{hidden_category}} events</a>
-{% endfor %}
-</span>

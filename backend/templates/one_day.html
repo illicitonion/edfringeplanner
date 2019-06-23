@@ -3,105 +3,31 @@
 <head>
 	<meta charset="UTF-8">
 	<title>{{date}} - edfringeplanner</title>
-
+	<link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
 	<style type="text/css">
-	body {
-		font-family: "Open sans", sans-serif;
-	}
-
-	.events {
-		display: flex;
-	}
-
-	.calendar-card {
-		position: relative;
-		width: 150px;
-		flex: 1;
-		display: flex;
-		height: 100%;
-	}
-
-	.event-info {
-	    padding-left: 5px;
-	}
-
-	.calendar-card .title {
-		font-size: 1.1em;
-		font-weight: bold;
-	}
-
-	.calendar-card.booked, .calendar-card.booked a {
-		background-color: black;
-		color: white;
-		text-decoration: none;
-	}
-
-	.calendar-card.lastchance, .calendar-card.important0 a {
-		background-color: red;
-		text-decoration: none;
-	}
-
-	.calendar-card.important0, .calendar-card.important0 a {
-		background-color: #00bd22;
-		text-decoration: none;
-	}
-
-	.calendar-card.important1, .calendar-card.important1 a {
-		background-color: #85ff9b;
-		text-decoration: none;
-	}
-
-	.calendar-card.important2, .calendar-card.important2 a {
-		background-color: #c8f9d1;
-		text-decoration: none;
-	}
-
-	.calendar-card .status-bar {
-		position: absolute;
-		bottom: 0px;
-		right: 2px;
-		font-weight: bold;
-		text-align: right;
-		font-size: 0.8em;
-	}
-
 	.calendar {
 		display: flex;
 		height: {{ hour_height_px * number_of_hours }}px;
-	}
-
-	.calendar .column {
-		display: flex;
-		flex-direction: column;
-		margin-right: 5px;
 	}
 
 	.calendar .cell-hour {
 		flex: 60;
 		height: {{ hour_height_px }}px;
 	}
-
-	.header {
-        position: sticky;
-        top: 0;
-        text-align: center;
-        z-index: 10;
-        font-size: 0.9em;
-    }
-
-    .left-header {
-        position: sticky;
-        left: 0;
-        z-index: 10;
-    }
-
-    .hiding-bar a:visited {
-		color: blue;
-    }
 	</style>
 </head>
 <body>
-	{{date}}{% include "hiding-bar.html" %}
+	{% include "site-header.html" %}
+
+	<div class="hiding-bar">
+	{% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
+	- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
+	- {% if display_filter.show_booked %}<a href="{{url_hiding('booked')}}">Hide{%else%}<a href="{{url_showing('booked')}}">Show{%endif%} Booked (another time) events</a>
+	{% for hidden_category in display_filter.hidden_categories %}
+	  - <a href="{{url_showing(hidden_category)}}">Show {{hidden_category}} events</a>
+	{% endfor %}
+	</div>
+
 	<div class="calendar">
         <!-- TODO: Work out why this disappears about 10 columns in -->
 		<div class="column left-header">

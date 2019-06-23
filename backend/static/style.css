@@ -6,6 +6,10 @@ a {
     color: #ae50d2;
 }
 
+a:visited {
+    color: #ae50d2;
+}
+
 div.error {
     margin-bottom: 20px;
 }

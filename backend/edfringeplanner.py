@@ -317,7 +317,7 @@ def import_csv():
         cur.execute("SELECT id FROM users WHERE import_token = %s", (import_token,))
         row = cur.fetchone()
         if row is None:
-            raise ValueError("Unknown import token")
+            raise ValueError("Unknown import token: {}".format(import_token))
         uid = row[0]
         import_from_url(cur, uid, url)
 

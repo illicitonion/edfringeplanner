@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - edfringeplanner</title>
+    <link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
 </head>
 <body>
+{% include "site-header.html" %}
   <form method="POST">
-      <input type="email" name="email" />
-      <br />
-      <input type="password" name="password" />
-      <br />
-      <input type="submit" value="Login" />
+      <div style="max-width: 800px; margin: 0 auto; line-height: 1.5;">
+          {% if error %}
+          <div class="error">Sorry, your email address or password was not recognised, or you haven't confirmed your email address.</div>
+          {% endif %}
+          <label for="email">Email address</label><br /><input type="email" id="email" name="email" value="{{email}}" /> <br />
+          <label for="password">Password</label><br /><input type="password" id="password" name="password" /> <br />
+          <input type="submit" value="Log in" />
+      </div>
   </form>
 </body>
 </html>

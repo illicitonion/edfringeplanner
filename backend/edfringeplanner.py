@@ -1,14 +1,17 @@
 import datetime
+import uuid
 from urllib.parse import urlparse, urljoin
 
 import flask
 import os
 
 import flask_login
+import psycopg2
+import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import Flask, request
-from flask_login import LoginManager, UserMixin, login_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from sortedcontainers import SortedSet
 
 import db
@@ -16,6 +19,7 @@ from events import load_events, mark_booked, set_interest, Filter
 
 app = Flask("edfringeplanner")
 app.secret_key = os.environ["EDFRINGEPLANNER_SECRET_KEY"].encode("utf-8")
+mailgun_key = os.environ["EDFRINGEPLANNER_MAILGUN_KEY"].encode("utf-8")
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -23,9 +27,10 @@ login_manager.init_app(app)
 
 
 def render_template(template, **kwargs):
-    return flask.render_template(
-        template, **{**kwargs, "user": flask_login.current_user}
-    )
+    current_user = flask_login.current_user
+    if not current_user.is_anonymous:
+        kwargs = {**kwargs, "user": flask_login.current_user}
+    return flask.render_template(template, **kwargs)
 
 
 class User(UserMixin):
@@ -135,7 +140,13 @@ def like(show_id):
 
 @app.route("/login")
 def login():
-    return render_template("login.html")
+    kwargs = {}
+    if flask.request.args.get("error") == "true":
+        kwargs["error"] = True
+    email = flask.request.args.get("email")
+    if email is not None:
+        kwargs["email"] = email
+    return render_template("login.html", **kwargs)
 
 
 @app.route("/login", methods=("POST",))
@@ -143,22 +154,113 @@ def handle_login():
     email = request.form.get("email", None)
     password = request.form.get("password", None)
     if email is None or password is None:
-        return flask.redirect(flask.url_for("login"))
+        return flask.redirect(flask.url_for("login", error="true", email=email))
     with db.cursor() as cur:
-        cur.execute("SELECT id, password_hash FROM users WHERE email = %s", (email,))
+        cur.execute(
+            "SELECT id, password_hash FROM users WHERE email = %s AND confirm_email_token is NULL",
+            (email,),
+        )
         row = cur.fetchone()
         if row is None:
-            return flask.redirect(flask.url_for("login"))
+            return flask.redirect(flask.url_for("login", error="true", email=email))
     id, password_hash = row
     try:
         PasswordHasher().verify(password_hash, password)
     except VerifyMismatchError:
-        return flask.redirect(flask.url_for("login"))
+        return flask.redirect(flask.url_for("login", error="true", email=email))
     login_user(User("{}".format(id)), remember=True)
     index_url = flask.url_for("index")
     target = flask.request.args.get("next", index_url)
     safe_target = target if is_safe_url(target) else index_url
     return flask.redirect(safe_target)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    return flask.redirect(flask.url_for("index"))
+
+
+@app.route("/signup")
+def signup():
+    kwargs = {}
+    for key in ["error", "needs_verification", "email", "start_date", "end_date"]:
+        value = flask.request.args.get(key)
+        if value is not None:
+            kwargs[key] = value
+    return render_template("signup.html", **kwargs)
+
+
+@app.route("/signup", methods=("POST",))
+def handle_signup():
+    email = flask.request.form.get("email")
+    password = flask.request.form.get("password")
+    start_date = flask.request.form.get("start_date")
+    end_date = flask.request.form.get("end_date")
+
+    if not email or not password or not start_date or not end_date:
+        return flask.redirect(
+            flask.url_for(
+                "signup",
+                error="true",
+                email=email,
+                start_date=start_date,
+                end_date=end_date,
+            )
+        )
+
+    password_hash = PasswordHasher().hash(password)
+
+    confirm_email_token = uuid.uuid4().hex
+
+    with db.cursor() as cur:
+        try:
+            cur.execute(
+                "INSERT INTO users "
+                + "(email, password_hash, start_datetime_utc, end_datetime_utc, confirm_email_token) "
+                + "VALUES (%s, %s, %s, %s, %s)",
+                (email, password_hash, start_date, end_date, confirm_email_token),
+            )
+        except psycopg2.errors.UniqueViolation:
+            return flask.redirect(
+                flask.url_for(
+                    "signup",
+                    error="true",
+                    email=email,
+                    start_date=start_date,
+                    end_date=end_date,
+                )
+            )
+
+    requests.post(
+        "https://api.mailgun.net/v3/mg.edfringeplanner.co.uk/messages",
+        auth=("api", mailgun_key),
+        data={
+            "from": "edfringe planner <signup@edfringeplanner.co.uk>",
+              "to": [email],
+              "subject": "Please verify your email for edfringeplanner",
+              "text": "Please follow this link to verify your account on edfringeplanner.co.uk - {}{} - if you didn't request this, just ignore the email and you'll never hear from us again."
+                .format("http://localhost:5000", flask.url_for("verify", email=email, token=confirm_email_token))
+        }
+    )
+
+    return flask.redirect(flask.url_for("signup", needs_verification="true"))
+
+
+@app.route("/verify/<email>/<token>")
+def verify(email, token):
+    with db.cursor() as cur:
+        cur.execute(
+            "UPDATE users SET confirm_email_token = NULL WHERE email = %s AND confirm_email_token = %s RETURNING id",
+            (email, token),
+        )
+        row = cur.fetchone()
+        if row is None:
+            return flask.redirect(flask.url_for("login", email=email, error="true"))
+        login_user(User("{}".format(row[0])), remember=True)
+        return flask.redirect(flask.url_for("index"))
+
 
 
 def is_safe_url(target):

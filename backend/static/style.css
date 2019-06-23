@@ -2,6 +2,14 @@ body {
     font-family: "Open sans", sans-serif;
 }
 
+a {
+    color: #ae50d2;
+}
+
+div.error {
+    margin-bottom: 20px;
+}
+
 .site-header {
     background-color: #EAEAEA;
     margin-bottom: 5px;

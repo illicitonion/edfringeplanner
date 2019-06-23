@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>edfringeplanner</title>
+    <link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
+</head>
+<body>
+{% include "site-header.html" %}
+<div class="content">
+    <form method="POST">
+        <div style="max-width: 800px; margin: 0 auto; line-height: 1.5;">
+            {% if error %}
+            <div class="error">Could not sign up; did you fill in all the fields? If so, maybe your email address is already signed up?</div>
+            {% endif %}
+            {% if needs_verification %}
+            <div class="error">Please click the verify link in your email.</div>
+            {% endif %}
+            <label for="email">Email address</label><br /><input type="email" id="email" name="email" value="{{email}}" /> <br />
+            <label for="password">Password</label><br /><input type="password" id="password" name="password" /> <br />
+            <label for="start_date">Start date</label><br /><input type="date" id="start_date" name="start_date" min="2019-08-01" max="2019-08-26" required="required" value="{{start_date}}" /><br />
+            <label for="end_date">End date</label><br /><input type="date" id="end_date" name="end_date" min="2019-08-01" max="2019-08-26" required="required" value="{{end_date}}" /><br />
+            <input type="submit" value="Sign up" />
+        </div>
+    </form>
+</div>
+</body>
+</html>

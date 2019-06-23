@@ -271,7 +271,7 @@ def mark_booked(config, user_id, performance_id):
         )
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
         show_id = cur.fetchone()[0]
-    set_interest(user_id, show_id, "Booked")
+    set_interest(config, user_id, show_id, "Booked")
 
 
 @dataclass(frozen=True)

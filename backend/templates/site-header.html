@@ -2,8 +2,9 @@
     <div class="container">
         <div class="logo"><a href="/">Edinburgh Fringe Planner</a></div>
         <div class="heading">
-            Plan your fringe - edfringeplanner takes your favourites from <a href="https://www.edfringe.com/">the edfringe website</a> and helps you work out what to do when.
-            <br/>
+            Plan your fringe<br /><br />
+            edfringeplanner takes your favourites from <a href="https://www.edfringe.com/">edfringe.com</a> and helps you work out what to do when.
+            <br/><br />
             {% if user %}
             <select onchange="if (this.value != 'browse') { window.location = `/day/${this.value}?hidden=booked`; }">
                 <option value="browse">Browse days</option>

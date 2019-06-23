@@ -38,7 +38,6 @@ div.error {
 .site-header .heading {
     flex: 40;
     color: #ae50d2;
-    line-height: 3;
 }
 
 .site-header .heading form {

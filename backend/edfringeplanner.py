@@ -10,6 +10,7 @@ import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from flask import Flask, request
+from flask_cachebuster import CacheBuster
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 from sortedcontainers import SortedSet
 
@@ -26,6 +27,9 @@ app.secret_key = config.session_key
 login_manager = LoginManager()
 login_manager.login_view = "login"
 login_manager.init_app(app)
+
+cache_buster = CacheBuster(config={"extensions": [".css"], "hash_size": 8})
+cache_buster.init_app(app)
 
 
 def render_template(template, **kwargs):

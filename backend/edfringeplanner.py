@@ -3,7 +3,6 @@ import uuid
 from urllib.parse import urlparse, urljoin
 
 import flask
-import os
 
 import flask_login
 import psycopg2
@@ -15,11 +14,13 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from sortedcontainers import SortedSet
 
 import db
+from config import Config
 from events import load_events, mark_booked, set_interest, Filter
 
+config = Config.from_env()
+
 app = Flask("edfringeplanner")
-app.secret_key = os.environ["EDFRINGEPLANNER_SECRET_KEY"].encode("utf-8")
-mailgun_key = os.environ["EDFRINGEPLANNER_MAILGUN_KEY"].encode("utf-8")
+app.secret_key = config.session_key
 
 login_manager = LoginManager()
 login_manager.login_view = "login"
@@ -37,7 +38,7 @@ class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
-        with db.cursor() as cur:
+        with db.cursor(config) as cur:
             cur.execute(
                 "SELECT start_datetime_utc, end_datetime_utc FROM users WHERE id = %s",
                 (id,),
@@ -101,7 +102,7 @@ def one_day(date_str):
     )
 
     event_columns, first_hour, number_of_hours = load_events(
-        user_id(), date, display_filter
+        config, user_id(), date, display_filter
     )
     return render_template(
         "one_day.html",
@@ -120,21 +121,21 @@ def one_day(date_str):
 @app.route("/booked/<performance_id>")
 @login_required
 def booked(performance_id):
-    mark_booked(user_id(), performance_id)
+    mark_booked(config, user_id(), performance_id)
     return "Done"
 
 
 @app.route("/love/<show_id>")
 @login_required
 def love(show_id):
-    set_interest(user_id(), show_id, "Must")
+    set_interest(config, user_id(), show_id, "Must")
     return "Done"
 
 
 @app.route("/like/<show_id>")
 @login_required
 def like(show_id):
-    set_interest(user_id(), show_id, "Like")
+    set_interest(config, user_id(), show_id, "Like")
     return "Done"
 
 
@@ -155,7 +156,7 @@ def handle_login():
     password = request.form.get("password", None)
     if email is None or password is None:
         return flask.redirect(flask.url_for("login", error="true", email=email))
-    with db.cursor() as cur:
+    with db.cursor(config) as cur:
         cur.execute(
             "SELECT id, password_hash FROM users WHERE email = %s AND confirm_email_token is NULL",
             (email,),
@@ -214,7 +215,7 @@ def handle_signup():
 
     confirm_email_token = uuid.uuid4().hex
 
-    with db.cursor() as cur:
+    with db.cursor(config) as cur:
         try:
             cur.execute(
                 "INSERT INTO users "
@@ -234,15 +235,17 @@ def handle_signup():
             )
 
     requests.post(
-        "https://api.mailgun.net/v3/mg.edfringeplanner.co.uk/messages",
-        auth=("api", mailgun_key),
+        "https://api.mailgun.net/v3/{}/messages".format(config.mailgun_domain),
+        auth=("api", config.mailgun_key),
         data={
             "from": "edfringe planner <signup@edfringeplanner.co.uk>",
-              "to": [email],
-              "subject": "Please verify your email for edfringeplanner",
-              "text": "Please follow this link to verify your account on edfringeplanner.co.uk - {}{} - if you didn't request this, just ignore the email and you'll never hear from us again."
-                .format("http://localhost:5000", flask.url_for("verify", email=email, token=confirm_email_token))
-        }
+            "to": [email],
+            "subject": "Please verify your email for edfringeplanner",
+            "text": "Please follow this link to verify your account on edfringeplanner.co.uk - {}{} - if you didn't request this, just ignore the email and you'll never hear from us again.".format(
+                config.domain_prefix,
+                flask.url_for("verify", email=email, token=confirm_email_token),
+            ),
+        },
     )
 
     return flask.redirect(flask.url_for("signup", needs_verification="true"))
@@ -250,7 +253,7 @@ def handle_signup():
 
 @app.route("/verify/<email>/<token>")
 def verify(email, token):
-    with db.cursor() as cur:
+    with db.cursor(config) as cur:
         cur.execute(
             "UPDATE users SET confirm_email_token = NULL WHERE email = %s AND confirm_email_token = %s RETURNING id",
             (email, token),
@@ -260,7 +263,6 @@ def verify(email, token):
             return flask.redirect(flask.url_for("login", email=email, error="true"))
         login_user(User("{}".format(row[0])), remember=True)
         return flask.redirect(flask.url_for("index"))
-
 
 
 def is_safe_url(target):
@@ -282,7 +284,7 @@ def day_url(showing=None, hiding=None):
 
 def main():
     # Check db is configured properly.
-    with db.cursor() as cur:
+    with db.cursor(config) as cur:
         cur.execute("SELECT id FROM venues LIMIT 1")
     app.run(debug=True, host="0.0.0.0")
 

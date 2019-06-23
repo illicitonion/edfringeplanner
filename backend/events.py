@@ -159,7 +159,7 @@ def bin_pack_events(events):
     return columns, start_of_day.hour, number_of_hours
 
 
-def load_events(user_id, date, filter: Filter):
+def load_events(config, user_id, date, filter: Filter):
     # TODO: Don't hard-code time zones
     start_of_day = datetime.datetime.strptime(
         "{} 05:00:00 +0100".format(date), "%Y-%m-%d %H:%M:%S %z"
@@ -172,7 +172,7 @@ def load_events(user_id, date, filter: Filter):
     events = []
     booked_events = []
     later_event_ids = set()
-    with cursor() as cur:
+    with cursor(config) as cur:
         # TODO: Filter on start/end time?
         cur.execute(
             "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
@@ -252,8 +252,8 @@ def load_events(user_id, date, filter: Filter):
     return bin_pack_events(events)
 
 
-def set_interest(user_id, show_id, interest):
-    with cursor() as cur:
+def set_interest(config, user_id, show_id, interest):
+    with cursor(config) as cur:
         cur.execute(
             "INSERT INTO interests (show_id, user_id, interest) VALUES (%(show_id)s, %(user_id)s, %(interest)s) "
             + "ON CONFLICT ON CONSTRAINT interests_show_id_user_id_key DO "
@@ -262,8 +262,8 @@ def set_interest(user_id, show_id, interest):
         )
 
 
-def mark_booked(user_id, performance_id):
-    with cursor() as cur:
+def mark_booked(config, user_id, performance_id):
+    with cursor(config) as cur:
         cur.execute(
             "INSERT INTO bookings (performance_id, user_id) VALUES (%(performance_id)s, %(user_id)s) "
             + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",

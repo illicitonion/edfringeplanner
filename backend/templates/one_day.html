@@ -6,7 +6,7 @@
 	<link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
 	<style type="text/css">
 	.calendar {
-		display: flex;
+		display: inline-flex;
 		height: {{ hour_height_px * number_of_hours }}px;
 	}
 
@@ -33,7 +33,6 @@
 	</div>
 
 	<div class="calendar">
-        <!-- TODO: Work out why this disappears about 10 columns in -->
 		<div class="column left-header">
 			{% for i in range (first_hour, first_hour + number_of_hours) %}
 			<div class="cell cell-hour">

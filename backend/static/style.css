@@ -44,10 +44,6 @@ div.error {
     display: inline;
 }
 
-.events {
-    display: flex;
-}
-
 .calendar-card {
     position: relative;
     width: 150px;

@@ -36,7 +36,7 @@ class Event:
     def title_maybe_truncated(self):
         limit = 50
         if len(self.title) > limit:
-            return self.title[:limit - 1] + "…"
+            return self.title[: limit - 1] + "…"
         return self.title
 
     @property
@@ -239,7 +239,12 @@ def load_events(user_id, date, filter: Filter):
         maybe_last_chance(event)
         for event in events
         if event.booked
-        or (filter.show(event) and not any(event.intersects(booked_event) for booked_event in booked_events))
+        or (
+            filter.show(event)
+            and not any(
+                event.intersects(booked_event) for booked_event in booked_events
+            )
+        )
     ]
     return bin_pack_events(events)
 

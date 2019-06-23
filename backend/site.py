@@ -72,7 +72,9 @@ def one_day(date_str):
         hidden_categories=SortedSet(hidden_categories),
     )
 
-    event_columns, first_hour, number_of_hours = load_events(user_id(), date, display_filter)
+    event_columns, first_hour, number_of_hours = load_events(
+        user_id(), date, display_filter
+    )
     return render_template(
         "one_day.html",
         date=date,

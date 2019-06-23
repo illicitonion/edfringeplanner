@@ -6,10 +6,6 @@ a {
     color: #ae50d2;
 }
 
-a:visited {
-    color: #ae50d2;
-}
-
 div.error {
     margin-bottom: 20px;
 }
@@ -127,8 +123,4 @@ div.error {
 
 .hiding-bar {
     margin-bottom: 5px;
-}
-
-.hiding-bar a:visited {
-    color: blue;
 }

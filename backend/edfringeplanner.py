@@ -123,6 +123,8 @@ def one_day(date_str):
 @login_required
 def booked(performance_id):
     mark_booked(config, user_id(), performance_id)
+    if is_safe_url(request.referrer):
+        return flask.redirect(request.referrer)
     return "Done"
 
 
@@ -130,6 +132,8 @@ def booked(performance_id):
 @login_required
 def love(show_id):
     set_interest(config, user_id(), show_id, "Must")
+    if is_safe_url(request.referrer):
+        return flask.redirect(request.referrer)
     return "Done"
 
 
@@ -137,6 +141,8 @@ def love(show_id):
 @login_required
 def like(show_id):
     set_interest(config, user_id(), show_id, "Like")
+    if is_safe_url(request.referrer):
+        return flask.redirect(request.referrer)
     return "Done"
 
 
@@ -325,6 +331,8 @@ def import_csv():
 
 
 def is_safe_url(target):
+    if target is None:
+        return False
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ("http", "https") and ref_url.netloc == test_url.netloc

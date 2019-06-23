@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR,
   start_datetime_utc TIMESTAMP WITH TIME ZONE,
   end_datetime_utc TIMESTAMP WITH TIME ZONE,
-  confirm_email_token VARCHAR
+  confirm_email_token VARCHAR,
+  import_token VARCHAR UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS interests (

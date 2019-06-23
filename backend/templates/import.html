@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>edfringeplanner</title>
+    <link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
+</head>
+<body>
+{% include "site-header.html" %}
+<div class="content">
+    Steps to import favourites from the edfringe website:
+    <ol>
+        <li><a href="https://tickets.edfringe.com/favourites">Click here</a> (making sure you're signed in)</li>
+        <li>Select "Export favourites as CSV"</li>
+        <li>Enter this email address: {{import_email}}</li>
+        <li>Press "Send Guide"</li>
+    </ol>
+</div>
+</body>
+</html>

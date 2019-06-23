@@ -16,6 +16,7 @@ from sortedcontainers import SortedSet
 import db
 from config import Config
 from events import load_events, mark_booked, set_interest, Filter
+from importer import import_from_url
 
 config = Config.from_env()
 
@@ -214,14 +215,22 @@ def handle_signup():
     password_hash = PasswordHasher().hash(password)
 
     confirm_email_token = uuid.uuid4().hex
+    import_token = uuid.uuid4().hex
 
     with db.cursor(config) as cur:
         try:
             cur.execute(
                 "INSERT INTO users "
-                + "(email, password_hash, start_datetime_utc, end_datetime_utc, confirm_email_token) "
-                + "VALUES (%s, %s, %s, %s, %s)",
-                (email, password_hash, start_date, end_date, confirm_email_token),
+                + "(email, password_hash, start_datetime_utc, end_datetime_utc, confirm_email_token, import_token) "
+                + "VALUES (%s, %s, %s, %s, %s, %s)",
+                (
+                    email,
+                    password_hash,
+                    start_date,
+                    end_date,
+                    confirm_email_token,
+                    import_token,
+                ),
             )
         except psycopg2.errors.UniqueViolation:
             return flask.redirect(
@@ -263,6 +272,56 @@ def verify(email, token):
             return flask.redirect(flask.url_for("login", email=email, error="true"))
         login_user(User("{}".format(row[0])), remember=True)
         return flask.redirect(flask.url_for("index"))
+
+
+@app.route("/import")
+@login_required
+def import_form():
+    with db.cursor(config) as cur:
+        cur.execute("SELECT import_token FROM users WHERE id = %s", (user_id(),))
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError("Internal error: couldn't find import token")
+        import_token = row[0]
+        import_email = "import-{}@{}".format(import_token, config.mailgun_domain)
+    return render_template("import.html", import_email=import_email)
+
+
+@app.route("/import", methods=("POST",))
+def import_csv():
+    recipient = request.form.get("recipient")
+    if recipient is None:
+        raise ValueError("Can't find recipient")
+    prefix = "import-"
+    suffix = "@{}".format(config.mailgun_domain)
+    if not recipient.startswith(prefix) or not recipient.endswith(suffix):
+        raise ValueError("Unexpected recipient: {}".format(recipient))
+    import_token = recipient[len(prefix) : -len(suffix)]
+
+    body = request.form.get("body-plain")
+    if body is None:
+        raise ValueError("Can't find body")
+    words = body.split()
+    url = next(
+        (
+            word
+            for word in words
+            if word.startswith("https://tickets.edfringe.com/")
+            and word.endswith(".csv")
+        ),
+        None,
+    )
+    if url is None:
+        raise ValueError("Can't find csv link in body")
+    with db.cursor(config) as cur:
+        cur.execute("SELECT id FROM users WHERE import_token = %s", (import_token,))
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError("Unknown import token")
+        uid = row[0]
+        import_from_url(cur, uid, url)
+
+    return "OK"
 
 
 def is_safe_url(target):

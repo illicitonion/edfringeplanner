@@ -76,6 +76,9 @@ def duration_to_chunks(duration: datetime.timedelta):
 
 
 def bin_pack_events(events):
+    if not events:
+        return [], 5, 0
+
     categories_to_columns = defaultdict(list)
 
     def category(event: Event) -> str:

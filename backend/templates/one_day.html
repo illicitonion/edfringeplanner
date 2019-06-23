@@ -19,6 +19,10 @@
 <body>
 	{% include "site-header.html" %}
 
+	{% if not event_columns %}
+	You don't have any events of interest this day. Maybe try importing some?
+	{% else %}
+
 	<div class="hiding-bar">
 	{% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
 	- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
@@ -54,5 +58,6 @@
 			</div>
 		{% endfor %}
 	</div>
+	{%endif%}
 </body>
 </html>

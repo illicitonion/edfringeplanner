@@ -208,8 +208,19 @@ def signup():
 def handle_signup():
     email = flask.request.form.get("email")
     password = flask.request.form.get("password")
-    start_date = flask.request.form.get("start_date")
-    end_date = datetime.datetime.strptime(flask.request.form.get("end_date"), "%Y-%m-%d") + datetime.timedelta(days=1)
+
+    try:
+        start_date = datetime.datetime.strptime(flask.request.form.get("start_date"), "%Y-%m-%d")
+        end_date = datetime.datetime.strptime(flask.request.form.get("end_date"), "%Y-%m-%d") + datetime.timedelta(days=1)
+    except ValueError:
+        return flask.redirect(
+            flask.url_for(
+                "signup",
+                error="date",
+                email=email,
+            )
+        )
+
 
     if not email or not password or not start_date or not end_date:
         return flask.redirect(

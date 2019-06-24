@@ -10,7 +10,9 @@
 <div class="content">
     <form method="POST">
         <div style="max-width: 800px; margin: 0 auto; line-height: 1.5;">
-            {% if error %}
+            {% if error == "date" %}
+            <div class="error">Could not sign up; date format was invalid. All dates must be YYYY-MM-DD.</div>
+            {% elif error %}
             <div class="error">Could not sign up; did you fill in all the fields? If so, maybe your email address is already signed up?</div>
             {% endif %}
             {% if needs_verification %}

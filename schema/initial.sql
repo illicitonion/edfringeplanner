@@ -47,3 +47,10 @@ CREATE TABLE IF NOT EXISTS bookings (
   user_id INTEGER REFERENCES users(id),
   UNIQUE(performance_id, user_id)
 );
+
+CREATE TABLE IF NOT EXISTS shares (
+  id SERIAL PRIMARY KEY,
+  shared_by INTEGER REFERENCES users(id),
+  shared_with_email VARCHAR,
+  UNIQUE(shared_by, shared_with_email)
+);

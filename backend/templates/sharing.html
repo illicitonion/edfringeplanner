@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>edfringeplanner - Sharing</title>
+    <link href="{{ url_for("static", filename="style.css") }}" rel="stylesheet" />
+</head>
+<body>
+{% include "site-header.html" %}
+<div class="content">
+    <div style="max-width: 800px; margin: 0 auto; line-height: 1.5;">
+        {% if error %}
+        <div class="error">An error occurred when sharing.</div>
+        {% endif %}
+        <form method="POST">
+            <label for="share_with_email">Share with email address</label><br /><input type="email" id="share_with_email" name="share_with_email" /><br />
+            <input type="submit" value="Share" />
+        </form>
+        <br />
+        {% if shared_with_emails %}
+        Already sharing with (may or may not actually be members of the site):
+        <ul>
+        {% for shared_with_email in shared_with_emails %}
+            <li>{{shared_with_email}} - <a href="/unshare/{{shared_with_email}}">Unshare</a></li>
+        {% endfor %}
+        {% else %}
+        You're not currently sharing your plan with anyone.
+        {% endif %}
+        </ul>
+    </div>
+</div>
+</body>
+</html>

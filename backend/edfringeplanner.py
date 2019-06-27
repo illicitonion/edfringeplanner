@@ -15,6 +15,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from sortedcontainers import SortedSet
 
 import db
+import sharing
 from config import Config
 from events import load_events, mark_booked, set_interest, Filter
 from importer import import_from_url
@@ -150,6 +151,34 @@ def like(show_id):
     return "Done"
 
 
+@app.route("/sharing")
+@login_required
+def serve_sharing():
+    shared_with_emails = sharing.get_share_emails(config, user_id())
+    return render_template(
+        "sharing.html",
+        shared_with_emails=shared_with_emails,
+        error=request.args.get("error", None),
+    )
+
+
+@app.route("/sharing", methods=("POST",))
+@login_required
+def handle_sharing():
+    share_with_email = request.form.get("share_with_email", None)
+    if share_with_email is None:
+        return flask.redirect(flask.url_for("serve_sharing", error="true"))
+    sharing.share(config, shared_by=user_id(), shared_with_email=share_with_email)
+    return flask.redirect(flask.url_for("serve_sharing"))
+
+
+@app.route("/unshare/<shared_with_email>")
+@login_required
+def unshare(shared_with_email):
+    sharing.unshare(config, shared_by=user_id(), shared_with_email=shared_with_email)
+    return flask.redirect(flask.url_for("serve_sharing"))
+
+
 @app.route("/login")
 def login():
     kwargs = {}
@@ -210,17 +239,14 @@ def handle_signup():
     password = flask.request.form.get("password")
 
     try:
-        start_date = datetime.datetime.strptime(flask.request.form.get("start_date"), "%Y-%m-%d")
-        end_date = datetime.datetime.strptime(flask.request.form.get("end_date"), "%Y-%m-%d") + datetime.timedelta(days=1)
-    except ValueError:
-        return flask.redirect(
-            flask.url_for(
-                "signup",
-                error="date",
-                email=email,
-            )
+        start_date = datetime.datetime.strptime(
+            flask.request.form.get("start_date"), "%Y-%m-%d"
         )
-
+        end_date = datetime.datetime.strptime(
+            flask.request.form.get("end_date"), "%Y-%m-%d"
+        ) + datetime.timedelta(days=1)
+    except ValueError:
+        return flask.redirect(flask.url_for("signup", error="date", email=email))
 
     if not email or not password or not start_date or not end_date:
         return flask.redirect(

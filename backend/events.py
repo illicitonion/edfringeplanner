@@ -260,17 +260,22 @@ def set_interest(config, user_id, show_id, interest):
             + "UPDATE SET interest = %(interest)s where interests.show_id = %(show_id)s and interests.user_id = %(user_id)s",
             dict(show_id=show_id, user_id=user_id, interest=interest),
         )
+        if interest != "Booked":
+            cur.execute(
+                "DELETE FROM bookings WHERE user_id = %s AND show_id = %s",
+                (user_id, show_id),
+            )
 
 
 def mark_booked(config, user_id, performance_id):
     with cursor(config) as cur:
-        cur.execute(
-            "INSERT INTO bookings (performance_id, user_id) VALUES (%(performance_id)s, %(user_id)s) "
-            + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",
-            dict(performance_id=performance_id, user_id=user_id),
-        )
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
         show_id = cur.fetchone()[0]
+        cur.execute(
+            "INSERT INTO bookings (performance_id, user_id, show_id) VALUES (%(performance_id)s, %(user_id)s, %(show_id)s) "
+            + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",
+            dict(performance_id=performance_id, user_id=user_id, show_id=show_id),
+        )
     set_interest(config, user_id, show_id, "Booked")
 
 

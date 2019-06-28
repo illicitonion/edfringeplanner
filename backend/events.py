@@ -27,9 +27,9 @@ class Event:
     duration: datetime.timedelta
     start_edinburgh: datetime.datetime
     edfringe_url: str
-    interest: str
+    show_interest: str
     performance_id: int
-    booked: bool
+    performance_interest: str
     last_chance: bool = False
 
     @property
@@ -38,6 +38,22 @@ class Event:
         if len(self.title) > limit:
             return self.title[: limit - 1] + "…"
         return self.title
+
+    @property
+    def booked(self):
+        return self.performance_interest == "Booked"
+
+    @property
+    def interest(self):
+        if self.performance_interest == "Booked" or self.show_interest == "Booked":
+            return "Booked"
+        if self.performance_interest == "Must" or self.show_interest == "Must":
+            return "Must"
+        if self.performance_interest == "Like" or self.show_interest == "Like":
+            return "Like"
+        if self.performance_interest:
+            return self.performance_interest
+        return self.show_interest
 
     @property
     def css_class(self):
@@ -175,12 +191,12 @@ def load_events(config, user_id, date, filter: Filter):
     with cursor(config) as cur:
         # TODO: Filter on start/end time?
         cur.execute(
-            "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_bookings.id "
+            "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_performance_interests.interest "
             + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
             + "INNER JOIN venues ON shows.venue_id = venues.id "
             + "INNER JOIN interests ON shows.id = interests.show_id "
             + "INNER JOIN users ON users.id = interests.user_id "
-            + "LEFT JOIN (SELECT * FROM bookings WHERE user_id = %(user_id)s) user_bookings ON performances.id = user_bookings.performance_id "
+            + "LEFT JOIN (SELECT * FROM performance_interests WHERE user_id = %(user_id)s) user_performance_interests ON performances.id = user_performance_interests.performance_id "
             + "WHERE users.id = %(user_id)s "
             + "AND performances.datetime_utc > users.start_datetime_utc AND performances.datetime_utc < users.end_datetime_utc "
             + "ORDER BY performances.datetime_utc ASC, shows.title ASC",
@@ -198,9 +214,9 @@ def load_events(config, user_id, date, filter: Filter):
                 datetime_utc,
                 venue_name,
                 venue_latlong,
-                interest,
+                show_interest,
                 performance_id,
-                booking_id,
+                performance_interest,
             ) = row
             start_edinburgh = datetime_utc.astimezone(pytz.timezone("Europe/London"))
             end_edinburgh = start_edinburgh + duration
@@ -223,9 +239,9 @@ def load_events(config, user_id, date, filter: Filter):
                 edfringe_url=edfringe_url,
                 duration=duration,
                 start_edinburgh=start_edinburgh,
-                interest=interest,
+                show_interest=show_interest,
                 performance_id=performance_id,
-                booked=booking_id is not None,
+                performance_interest=performance_interest,
             )
             events.append(event)
             if event.booked:
@@ -260,11 +276,6 @@ def set_interest(config, user_id, show_id, interest):
             + "UPDATE SET interest = %(interest)s where interests.show_id = %(show_id)s and interests.user_id = %(user_id)s",
             dict(show_id=show_id, user_id=user_id, interest=interest),
         )
-        if interest != "Booked":
-            cur.execute(
-                "DELETE FROM bookings WHERE user_id = %s AND show_id = %s",
-                (user_id, show_id),
-            )
 
 
 def remove_interest(config, user_id, show_id):
@@ -274,21 +285,49 @@ def remove_interest(config, user_id, show_id):
             (user_id, show_id),
         )
         cur.execute(
-            "DELETE FROM bookings WHERE user_id = %s AND show_id = %s",
+            "DELETE FROM performance_interests WHERE user_id = %s AND show_id = %s",
             (user_id, show_id),
         )
 
 
 def mark_booked(config, user_id, performance_id):
+    set_performance_interest(config, user_id, performance_id, interest="Booked")
+    with cursor(config) as cur:
+        cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
+        show_id = cur.fetchone()[0]
+    set_interest(config, user_id, show_id, "Booked")
+
+
+def set_performance_interest(config, user_id, performance_id, interest):
     with cursor(config) as cur:
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))
         show_id = cur.fetchone()[0]
         cur.execute(
-            "INSERT INTO bookings (performance_id, user_id, show_id) VALUES (%(performance_id)s, %(user_id)s, %(show_id)s) "
-            + "ON CONFLICT ON CONSTRAINT bookings_performance_id_user_id_key DO NOTHING",
-            dict(performance_id=performance_id, user_id=user_id, show_id=show_id),
+            "INSERT INTO performance_interests (show_id, performance_id, user_id, interest) "
+            + "VALUES (%(show_id)s, %(performance_id)s, %(user_id)s, %(interest)s) "
+            + "ON CONFLICT ON CONSTRAINT performance_interests_performance_id_user_id_key DO "
+            + "UPDATE SET interest = %(interest)s WHERE performance_interests.user_id = %(user_id)s AND performance_interests.performance_id = %(performance_id)s",
+            dict(
+                show_id=show_id,
+                performance_id=performance_id,
+                user_id=user_id,
+                interest=interest,
+            ),
         )
-    set_interest(config, user_id, show_id, "Booked")
+
+
+def unset_performance_interest(config, user_id, *, show_id=None, performance_id=None):
+    with cursor(config) as cur:
+        if show_id is not None:
+            cur.execute(
+                "DELETE FROM performance_interests WHERE user_id = %s AND show_id = %s",
+                (user_id, show_id),
+            )
+        elif performance_id is not None:
+            cur.execute(
+                "DELETE FROM performance_interests WHERE user_id = %s AND performance_id = %s",
+                (user_id, performance_id),
+            )
 
 
 @dataclass(frozen=True)

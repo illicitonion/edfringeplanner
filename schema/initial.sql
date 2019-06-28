@@ -40,11 +40,12 @@ CREATE TABLE IF NOT EXISTS interests (
   UNIQUE(show_id, user_id)
 );
 
-CREATE TABLE IF NOT EXISTS bookings (
+CREATE TABLE IF NOT EXISTS performance_interests (
   id SERIAL PRIMARY KEY,
   show_id INTEGER REFERENCES shows(id),
   performance_id INTEGER REFERENCES performances(id),
   user_id INTEGER REFERENCES users(id),
+  interest VARCHAR, -- Booked, Must
   UNIQUE(performance_id, user_id)
 );
 

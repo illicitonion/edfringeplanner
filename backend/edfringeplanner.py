@@ -17,7 +17,15 @@ from sortedcontainers import SortedSet
 import db
 import sharing
 from config import Config
-from events import load_events, mark_booked, set_interest, Filter, remove_interest
+from events import (
+    load_events,
+    mark_booked,
+    set_interest,
+    Filter,
+    remove_interest,
+    set_performance_interest,
+    unset_performance_interest,
+)
 from importer import import_from_url
 
 config = Config.from_env()
@@ -133,19 +141,30 @@ def booked(performance_id):
     return "Done"
 
 
-@app.route("/love/<show_id>")
+@app.route("/love/<show_id>/<performance_id>")
 @login_required
-def love(show_id):
+def love(show_id, performance_id):
     set_interest(config, user_id(), show_id, "Must")
+    unset_performance_interest(config, user_id(), performance_id=performance_id)
     if is_safe_url(request.referrer):
         return flask.redirect(request.referrer)
     return "Done"
 
 
-@app.route("/like/<show_id>")
+@app.route("/like/<show_id>/<performance_id>")
 @login_required
-def like(show_id):
+def like(show_id, performance_id):
     set_interest(config, user_id(), show_id, "Like")
+    unset_performance_interest(config, user_id(), performance_id=performance_id)
+    if is_safe_url(request.referrer):
+        return flask.redirect(request.referrer)
+    return "Done"
+
+
+@app.route("/love/performance/<performance_id>")
+@login_required
+def love_performance(performance_id):
+    set_performance_interest(config, user_id(), performance_id, "Must")
     if is_safe_url(request.referrer):
         return flask.redirect(request.referrer)
     return "Done"
@@ -155,6 +174,7 @@ def like(show_id):
 @login_required
 def unlike(show_id):
     remove_interest(config, user_id(), show_id)
+    unset_performance_interest(config, user_id(), show_id=show_id)
     if is_safe_url(request.referrer):
         return flask.redirect(request.referrer)
     return "Done"

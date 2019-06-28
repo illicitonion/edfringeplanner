@@ -267,6 +267,18 @@ def set_interest(config, user_id, show_id, interest):
             )
 
 
+def remove_interest(config, user_id, show_id):
+    with cursor(config) as cur:
+        cur.execute(
+            "DELETE FROM interests WHERE user_id = %s AND show_id = %s",
+            (user_id, show_id),
+        )
+        cur.execute(
+            "DELETE FROM bookings WHERE user_id = %s AND show_id = %s",
+            (user_id, show_id),
+        )
+
+
 def mark_booked(config, user_id, performance_id):
     with cursor(config) as cur:
         cur.execute("SELECT show_id FROM performances WHERE id = %s", (performance_id,))

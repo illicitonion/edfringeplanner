@@ -9,7 +9,7 @@
 				Unbook and: <a href="/love/{{event.show_id}}">❤</a>, <a href="/like/{{event.show_id}}">👍</a>
 			{% else %}
 			{% if event.last_chance %}Last Chance!<br />{% endif %}
-				Mark as: <a href="/love/{{event.show_id}}">❤️</a>, <a href="/like/{{event.show_id}}">👍</a>, <a href="/booked/{{event.performance_id}}">Booked</a>
+			<a href="/love/{{event.show_id}}">❤️</a>, <a href="/like/{{event.show_id}}">👍</a>, <a href="/booked/{{event.performance_id}}">Booked</a>, <a href="/unlike/{{event.show_id}}">x</a>
 			{% endif %}
 		</div>
 	</div>

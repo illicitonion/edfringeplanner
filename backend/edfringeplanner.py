@@ -17,7 +17,7 @@ from sortedcontainers import SortedSet
 import db
 import sharing
 from config import Config
-from events import load_events, mark_booked, set_interest, Filter
+from events import load_events, mark_booked, set_interest, Filter, remove_interest
 from importer import import_from_url
 
 config = Config.from_env()
@@ -146,6 +146,15 @@ def love(show_id):
 @login_required
 def like(show_id):
     set_interest(config, user_id(), show_id, "Like")
+    if is_safe_url(request.referrer):
+        return flask.redirect(request.referrer)
+    return "Done"
+
+
+@app.route("/unlike/<show_id>")
+@login_required
+def unlike(show_id):
+    remove_interest(config, user_id(), show_id)
     if is_safe_url(request.referrer):
         return flask.redirect(request.referrer)
     return "Done"

@@ -391,6 +391,8 @@ class Filter:
     show_like: bool
     show_must: bool
     show_booked: bool
+    start_at: Optional[datetime.datetime]
+    end_at: Optional[datetime.datetime]
     show_past: bool
     hidden_categories: SortedSet[str]
 
@@ -408,6 +410,12 @@ class Filter:
         now = datetime.datetime.utcnow().astimezone(pytz.timezone("Europe/London"))
         if not self.show_past and event.start_edinburgh <= now:
             return False
+        if self.start_at is not None:
+            if self.start_at > event.start_edinburgh:
+                return False
+        if self.end_at is not None:
+            if self.end_at < event.start_edinburgh:
+                return False
         if event.booked or event.last_chance:
             return True
         if event.interest == "Like" and not self.show_like:

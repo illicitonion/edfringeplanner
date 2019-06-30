@@ -6,6 +6,7 @@ import flask
 
 import flask_login
 import psycopg2
+import pytz
 import requests
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -99,6 +100,30 @@ def one_day(date_str):
     show_must = True
     show_booked = True
     show_past = True
+    start_at = request.args.get("start_at", None)
+    start_at_datetime = None
+    if start_at is not None:
+        try:
+            start_at_time = datetime.datetime.strptime(
+                "{} +0100".format(start_at), "%H:%M %z"
+            ).time()
+            start_at_datetime = datetime.datetime.combine(
+                date, start_at_time
+            ).astimezone(pytz.timezone("Europe/London"))
+        except ValueError:
+            pass
+    end_at = request.args.get("end_at", None)
+    end_at_datetime = None
+    if end_at is not None:
+        try:
+            end_at_time = datetime.datetime.strptime(
+                "{} +0100".format(end_at), "%H:%M %z"
+            ).time()
+            end_at_datetime = datetime.datetime.combine(date, end_at_time).astimezone(
+                pytz.timezone("Europe/London")
+            )
+        except ValueError:
+            pass
     hidden_categories = set()
     for hidden in request.args.getlist("hidden"):
         if hidden == "like":
@@ -117,6 +142,8 @@ def one_day(date_str):
         show_must=show_must,
         show_booked=show_booked,
         show_past=show_past,
+        start_at=start_at_datetime,
+        end_at=end_at_datetime,
         hidden_categories=SortedSet(hidden_categories),
     )
 
@@ -138,6 +165,8 @@ def one_day(date_str):
         url_showing=lambda s: day_url(showing=s),
         display_filter=display_filter,
         shared_boost=shared_boost,
+        start_at=start_at,
+        end_at=end_at,
     )
 
 

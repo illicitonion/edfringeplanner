@@ -16,10 +16,22 @@
 	}
 	</style>
 	<script type="text/javascript">
-	function handleSharedEventBoost(elem) {
+	function updateQueryString(key, value) {
 		var query = new URLSearchParams(window.location.search);
-		query.set("boost", elem.value);
+		query.set(key, value);
 		window.location.search = query.toString();
+	}
+
+	function handleSharedEventBoost(elem) {
+		updateQueryString("boost", elem.value);
+	}
+
+	function handleStartAtChange(elem) {
+		updateQueryString("start_at", elem.value);
+	}
+
+	function handleEndAtChange(elem) {
+		updateQueryString("end_at", elem.value);
 	}
 	</script>
 </head>
@@ -36,6 +48,18 @@
 	{% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
 	- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
 	- {% if display_filter.show_booked %}<a href="{{url_hiding('booked')}}">Hide{%else%}<a href="{{url_showing('booked')}}">Show{%endif%} Booked (another time) events</a>
+	- Start at
+	<select onchange="handleStartAtChange(this)"><option>Start</option>
+		{% for h in range(10, 22) %}
+		<option {%if start_at == "%s:00"|format(h)%}selected="selected"{%endif%}>{{h}}:00</option>
+		{%endfor%}
+	</select>
+	- End at
+	<select onchange="handleEndAtChange(this)"><option>End</option>
+		{% for h in range(11, 23) %}
+		<option {%if end_at == "%s:00"|format(h)%}selected="selected"{%endif%}>{{h}}:00</option>
+		{%endfor%}
+	</select>
 	- {% if display_filter.show_past %}<a href="{{url_hiding('past')}}">Hide{%else%}<a href="{{url_showing('past')}}">Show{%endif%} Past events</a>
 	{% for hidden_category in display_filter.hidden_categories %}
 	  - <a href="{{url_showing(hidden_category)}}">Show {{hidden_category}} events</a>

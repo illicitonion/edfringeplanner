@@ -402,6 +402,8 @@ class Filter:
             show_like=True,
             show_must=True,
             show_booked=True,
+            start_at=None,
+            end_at=None,
             show_past=True,
             hidden_categories=SortedSet(),
         )

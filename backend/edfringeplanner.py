@@ -93,7 +93,7 @@ def one_day(date_str):
             "{} +0100".format(date_str), "%Y-%m-%d %z"
         ).date()
     except ValueError:
-        return "Invalid date in URL"
+        return "Invalid date in URL: {}".format(date_str)
 
     show_likes = True
     show_must = True

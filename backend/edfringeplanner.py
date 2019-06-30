@@ -183,10 +183,11 @@ def unlike(show_id):
 @app.route("/sharing")
 @login_required
 def serve_sharing():
-    shared_with_emails = sharing.get_share_emails(config, user_id())
+    shared_by_emails, shared_with_emails = sharing.get_share_emails(config, user_id())
     return render_template(
         "sharing.html",
         shared_with_emails=shared_with_emails,
+        shared_by_emails=shared_by_emails,
         error=request.args.get("error", None),
     )
 

@@ -23,10 +23,22 @@
         {% for shared_with_email in shared_with_emails %}
             <li>{{shared_with_email}} - <a href="/unshare/{{shared_with_email}}">Unshare</a></li>
         {% endfor %}
+        </ul>
         {% else %}
         You're not currently sharing your plan with anyone.
+        <br />
         {% endif %}
+        <br />
+        {% if shared_by_emails %}
+        These people are sharing their plans with you:
+        <ul>
+            {% for shared_by_email in shared_by_emails %}
+                <li>{{shared_by_email}}</li>
+            {% endfor %}
         </ul>
+        {% else %}
+        No one is currently sharing their plan with you.
+        {% endif %}
     </div>
 </div>
 </body>

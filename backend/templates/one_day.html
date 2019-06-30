@@ -26,10 +26,6 @@
 <body>
 	{% include "site-header.html" %}
 
-	{% if not event_columns %}
-	You don't have any events of interest this day. Maybe try <a href="/import">importing some</a>?
-	{% else %}
-
 	<div class="hiding-bar">
 	Boost shared events:
 	<select onchange="handleSharedEventBoost(this)">
@@ -40,10 +36,16 @@
 	{% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
 	- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
 	- {% if display_filter.show_booked %}<a href="{{url_hiding('booked')}}">Hide{%else%}<a href="{{url_showing('booked')}}">Show{%endif%} Booked (another time) events</a>
+	- {% if display_filter.show_past %}<a href="{{url_hiding('past')}}">Hide{%else%}<a href="{{url_showing('past')}}">Show{%endif%} Past events</a>
 	{% for hidden_category in display_filter.hidden_categories %}
 	  - <a href="{{url_showing(hidden_category)}}">Show {{hidden_category}} events</a>
 	{% endfor %}
 	</div>
+
+	{% if not event_columns %}
+	You don't have any events of interest this day. Maybe try <a href="/import">importing some</a>?
+	{% else %}
+
 
 	<div class="calendar">
 		<div class="column left-header">

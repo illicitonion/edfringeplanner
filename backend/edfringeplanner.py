@@ -98,6 +98,7 @@ def one_day(date_str):
     show_likes = True
     show_must = True
     show_booked = True
+    show_past = True
     hidden_categories = set()
     for hidden in request.args.getlist("hidden"):
         if hidden == "like":
@@ -106,6 +107,8 @@ def one_day(date_str):
             show_must = False
         elif hidden == "booked":
             show_booked = False
+        elif hidden == "past":
+            show_past = False
         else:
             hidden_categories.add(hidden)
 
@@ -113,6 +116,7 @@ def one_day(date_str):
         show_like=show_likes,
         show_must=show_must,
         show_booked=show_booked,
+        show_past=show_past,
         hidden_categories=SortedSet(hidden_categories),
     )
 

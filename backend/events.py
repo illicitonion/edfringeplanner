@@ -315,12 +315,10 @@ def load_events(config, user_id, date, filter: Filter, hydrate_shares, email=Non
     events = [
         maybe_last_chance(event)
         for event in events
-        if event.booked
-        or (
-            filter.show(event)
-            and not any(
-                event.intersects(booked_event) for booked_event in booked_events
-            )
+        if filter.show(event)
+        and (
+            event.booked
+            or not any(event.intersects(booked_event) for booked_event in booked_events)
         )
     ]
     return events
@@ -393,6 +391,7 @@ class Filter:
     show_like: bool
     show_must: bool
     show_booked: bool
+    show_past: bool
     hidden_categories: SortedSet[str]
 
     @staticmethod
@@ -401,10 +400,14 @@ class Filter:
             show_like=True,
             show_must=True,
             show_booked=True,
+            show_past=True,
             hidden_categories=SortedSet(),
         )
 
     def show(self, event: Event):
+        now = datetime.datetime.utcnow().astimezone(pytz.timezone("Europe/London"))
+        if not self.show_past and event.start_edinburgh <= now:
+            return False
         if event.booked or event.last_chance:
             return True
         if event.interest == "Like" and not self.show_like:

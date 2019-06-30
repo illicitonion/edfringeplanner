@@ -6,7 +6,7 @@
 		<div class="status-bar">
 			{% if event.interest == "Booked" %}
 				Booked<br />
-				Unbook and: <a href="/love/{{event.show_id}}">❤</a>, <a href="/like/{{event.show_id}}">👍</a>
+				Unbook and: <a href="/love/{{event.show_id}}/{{event.performance_id}}">❤</a>, <a href="/like/{{event.show_id}}/{{event.performance_id}}">👍</a>
 			{% else %}
 			{% if event.last_chance %}Last Chance!<br />{% endif %}
 			{% if event.shared_interests %}

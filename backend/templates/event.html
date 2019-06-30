@@ -9,7 +9,16 @@
 				Unbook and: <a href="/love/{{event.show_id}}">❤</a>, <a href="/like/{{event.show_id}}">👍</a>
 			{% else %}
 			{% if event.last_chance %}Last Chance!<br />{% endif %}
-			<a href="/love/{{event.show_id}}/{{event.performance_id}}">❤️</a>, <a href="/like/{{event.show_id}}/{{event.performance_id}}">👍</a>, <a href="/booked/{{event.performance_id}}">Booked</a>, <a href="/unlike/{{event.show_id}}">x</a>, <a href="/love/performance/{{event.performance_id}}">❤️this</a>
+			{% if event.shared_interests %}
+				Friend{% if event.shared_interests|length > 1 %}s{% endif %}
+				{% if event.max_shared_interest == "Must" %}
+					- ❤
+				{% elif event.max_shared_interest == "Like" %}
+					- 👍
+				{% endif %}
+				<br />
+			{% endif %}
+			<a href="/love/{{event.show_id}}/{{event.performance_id}}" class="heart">❤️</a>, <a href="/like/{{event.show_id}}/{{event.performance_id}}" class="thumbsup">👍</a>, <a href="/booked/{{event.performance_id}}">Book</a>, <a href="/unlike/{{event.show_id}}">x</a>, <a href="/love/performance/{{event.performance_id}}">❤️this</a>
 			{% endif %}
 		</div>
 	</div>

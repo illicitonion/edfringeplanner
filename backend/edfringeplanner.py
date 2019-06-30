@@ -25,6 +25,7 @@ from events import (
     remove_interest,
     set_performance_interest,
     unset_performance_interest,
+    bin_pack_events,
 )
 from importer import import_from_url
 
@@ -115,8 +116,11 @@ def one_day(date_str):
         hidden_categories=SortedSet(hidden_categories),
     )
 
-    event_columns, first_hour, number_of_hours = load_events(
-        config, user_id(), date, display_filter
+    shared_boost = request.args.get("boost", "none")
+
+    event_columns, first_hour, number_of_hours = bin_pack_events(
+        load_events(config, user_id(), date, display_filter, shared_boost != "none"),
+        shared_boost,
     )
     return render_template(
         "one_day.html",
@@ -129,6 +133,7 @@ def one_day(date_str):
         url_hiding=lambda s: day_url(hiding=s),
         url_showing=lambda s: day_url(showing=s),
         display_filter=display_filter,
+        shared_boost=shared_boost,
     )
 
 

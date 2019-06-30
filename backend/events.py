@@ -5,11 +5,12 @@ import datetime
 from collections import defaultdict
 from dataclasses import dataclass
 from sortedcontainers import SortedSet
-from typing import List, Set
+from typing import FrozenSet, List, Optional
 
 import pytz
 
 from db import cursor
+from sharing import get_shared_by_user_ids_and_emails
 
 
 @dataclass(eq=True, frozen=True)
@@ -30,6 +31,9 @@ class Event:
     show_interest: str
     performance_id: int
     performance_interest: str
+    user_id: int
+    user_email: Optional[str]
+    shared_interests: FrozenSet[Event]
     last_chance: bool = False
 
     @property
@@ -68,6 +72,52 @@ class Event:
         else:
             return "important2"
 
+    def interest_int(self, shared_boost):
+        if self.booked:
+            return 99999
+        if self.interest == "Booked":
+            return 0
+
+        bonus = 0
+
+        if self.shared_interests:
+            if shared_boost == "bit":
+                base_bonus = 200
+            elif shared_boost == "lot":
+                base_bonus = 800
+            else:
+                base_bonus = 0
+            for shared_interest in self.shared_interests:
+                if shared_interest.booked:
+                    multiplier = 4
+                elif shared_interest.interest == "Must":
+                    multiplier = 2
+                else:
+                    multiplier = 1
+                bonus += base_bonus * multiplier
+
+        if self.interest == "Must":
+            if self.last_chance:
+                return 10000 + bonus
+            return 1000 + bonus
+        elif self.interest == "Like":
+            if self.last_chance:
+                return 200 + bonus
+            return 100 + bonus
+        else:
+            return 1 + bonus
+
+    @property
+    def max_shared_interest(self):
+        if not self.shared_interests:
+            return ""
+        if any(event.booked for event in self.shared_interests):
+            return "Booked"
+        return max(
+            "" if event.interest == "Booked" else event.interest
+            for event in self.shared_interests
+        )
+
     def intersects(self, other: Event) -> bool:
         if self.start_edinburgh <= other.start_edinburgh:
             return self.start_edinburgh + self.duration > other.start_edinburgh
@@ -91,7 +141,7 @@ def duration_to_chunks(duration: datetime.timedelta):
     return duration.total_seconds() / 60
 
 
-def bin_pack_events(events):
+def bin_pack_events(events, shared_boost):
     if not events:
         return [], 5, 0
 
@@ -107,20 +157,8 @@ def bin_pack_events(events):
         event = event_or_padding.event
         if event is None:
             return 0
-        elif event.booked:
-            return 99999
-        elif event.interest == "Booked":
-            return 0
-        elif event.interest == "Must":
-            if event.last_chance:
-                return 10000
-            return 1000
-        elif event.interest == "Like":
-            if event.last_chance:
-                return 200
-            return 100
         else:
-            return 1
+            return event.interest_int(shared_boost)
 
     start_of_day = min(event.start_edinburgh for event in events).replace(
         minute=0, second=0
@@ -175,7 +213,7 @@ def bin_pack_events(events):
     return columns, start_of_day.hour, number_of_hours
 
 
-def load_events(config, user_id, date, filter: Filter):
+def load_events(config, user_id, date, filter: Filter, hydrate_shares, email=None):
     # TODO: Don't hard-code time zones
     start_of_day = datetime.datetime.strptime(
         "{} 05:00:00 +0100".format(date), "%Y-%m-%d %H:%M:%S %z"
@@ -184,6 +222,23 @@ def load_events(config, user_id, date, filter: Filter):
         "{} 05:00:00 +0100".format(date + datetime.timedelta(days=1)),
         "%Y-%m-%d %H:%M:%S %z",
     )
+
+    shared_interests = defaultdict(set)
+    if hydrate_shares:
+        for (
+            shared_by_user_id,
+            shared_by_user_email,
+        ) in get_shared_by_user_ids_and_emails(config, user_id):
+            events = load_events(
+                config,
+                shared_by_user_id,
+                date,
+                Filter.show_all(),
+                False,
+                email=shared_by_user_email,
+            )
+            for event in events:
+                shared_interests[event.performance_id].add(event)
 
     events = []
     booked_events = []
@@ -242,6 +297,9 @@ def load_events(config, user_id, date, filter: Filter):
                 show_interest=show_interest,
                 performance_id=performance_id,
                 performance_interest=performance_interest,
+                user_id=user_id,
+                shared_interests=frozenset(shared_interests[performance_id]),
+                user_email=email,
             )
             events.append(event)
             if event.booked:
@@ -265,7 +323,7 @@ def load_events(config, user_id, date, filter: Filter):
             )
         )
     ]
-    return bin_pack_events(events)
+    return events
 
 
 def set_interest(config, user_id, show_id, interest):
@@ -337,6 +395,15 @@ class Filter:
     show_booked: bool
     hidden_categories: SortedSet[str]
 
+    @staticmethod
+    def show_all() -> Filter:
+        return Filter(
+            show_like=True,
+            show_must=True,
+            show_booked=True,
+            hidden_categories=SortedSet(),
+        )
+
     def show(self, event: Event):
         if event.booked or event.last_chance:
             return True
@@ -349,3 +416,10 @@ class Filter:
         if event.category in self.hidden_categories:
             return False
         return True
+
+
+_interest_rates = {"": 0, None: 0, "Booked": 0, "Like": 1, "Must": 2}
+
+
+def interest_comparator(interest):
+    return _interest_rates.get(interest, 0)

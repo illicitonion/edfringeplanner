@@ -15,6 +15,13 @@
 		height: {{ hour_height_px }}px;
 	}
 	</style>
+	<script type="text/javascript">
+	function handleSharedEventBoost(elem) {
+		var query = new URLSearchParams(window.location.search);
+		query.set("boost", elem.value);
+		window.location.search = query.toString();
+	}
+	</script>
 </head>
 <body>
 	{% include "site-header.html" %}
@@ -24,6 +31,12 @@
 	{% else %}
 
 	<div class="hiding-bar">
+	Boost shared events:
+	<select onchange="handleSharedEventBoost(this)">
+		<option value="none">None</option>
+		<option value="bit" {% if shared_boost == "bit" %}selected="selected"{% endif %}>A bit</option>
+		<option value="lot" {% if shared_boost == "lot" %}selected="selected"{% endif %}>A lot</option>
+	</select>
 	{% if display_filter.show_like %}<a href="{{url_hiding('like')}}">Hide{%else%}<a href="{{url_showing('like')}}">Show{%endif%} 👍 events</a>
 	- {% if display_filter.show_must %}<a href="{{url_hiding('love')}}">Hide{%else%}<a href="{{url_showing('love')}}">Show{%endif%} ❤ events</a>
 	- {% if display_filter.show_booked %}<a href="{{url_hiding('booked')}}">Hide{%else%}<a href="{{url_showing('booked')}}">Show{%endif%} Booked (another time) events</a>

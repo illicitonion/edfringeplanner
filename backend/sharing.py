@@ -17,6 +17,22 @@ def unshare(config, *, shared_by, shared_with_email):
         )
 
 
+def get_shared_by_user_ids_and_emails(config, user_id):
+    with cursor(config) as cur:
+        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError("Couldn't find email address for user {}".format(user_id))
+        user_email = row[0]
+
+        cur.execute(
+            "SELECT users.id, users.email FROM users INNER JOIN shares ON users.id = shares.shared_by WHERE shares.shared_with_email = %s ORDER BY users.email ASC",
+            (user_email,),
+        )
+
+        return [(row[0], row[1]) for row in cur.fetchall()]
+
+
 def get_share_emails(config, user_id):
     with cursor(config) as cur:
         cur.execute(
@@ -26,16 +42,8 @@ def get_share_emails(config, user_id):
 
         shared_with_user = [row[0] for row in cur.fetchall()]
 
-        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
-        row = cur.fetchone()
-        if row is None:
-            raise ValueError("Couldn't find email address for user {}".format(user_id))
-        user_email = row[0]
+        shared_by_ids_and_emails = get_shared_by_user_ids_and_emails(config, user_id)
 
-        cur.execute(
-            "SELECT users.email FROM users INNER JOIN shares ON users.id = shares.shared_by WHERE shares.shared_with_email = %s ORDER BY users.email ASC",
-            (user_email,),
-        )
-        shared_by_user = [row[0] for row in cur.fetchall()]
+        shared_by_user = [email for id, email in shared_by_ids_and_emails]
 
         return shared_by_user, shared_with_user

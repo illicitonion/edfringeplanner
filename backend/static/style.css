@@ -57,6 +57,20 @@ div.error {
     padding-left: 5px;
 }
 
+.event-info .location {
+    font-size: 0.9em;
+}
+
+.interest-love .heart {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+
+.interest-like .thumbsup {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+
 .calendar-card .title {
     font-size: 1.1em;
     font-weight: bold;

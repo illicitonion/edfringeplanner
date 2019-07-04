@@ -6,7 +6,7 @@
             edfringeplanner takes your favourites from <a href="https://www.edfringe.com/">edfringe.com</a> and helps you work out what to do when.
             <br/><br />
             {% if user %}
-            <select onchange="if (this.value != 'browse') { window.location = `/day/${this.value}?hidden=booked&hidden=past`; }">
+            <select onchange="if (this.value != 'browse') { var qs = localStorage.getItem('day_qs') || '?hidden=booked&hidden=past'; window.location = `/day/${this.value}${qs}`; }">
                 <option value="browse">Browse days</option>
                 {% for visit_day in user.visit_days %}
                 {% with day_yyyymmdd = visit_day.strftime("%Y-%m-%d") %}

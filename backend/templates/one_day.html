@@ -16,6 +16,8 @@
 	}
 	</style>
 	<script type="text/javascript">
+	localStorage.setItem("day_qs", window.location.search);
+
 	function updateQueryString(key, value) {
 		var query = new URLSearchParams(window.location.search);
 		query.set(key, value);

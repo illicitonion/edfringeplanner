@@ -106,24 +106,38 @@ def import_from_iter(cur, user_id, it):
             (show_id, user_id, "Like"),
         )
 
-        if dates:
-            some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
-            for datetime_utc, available_or_sold_out in lookup_shows(
-                edfringe_url, some_date
-            ):
+        if len(times) == 1:
+            for date in dates:
+                local_datetime = datetime.datetime.strptime(
+                    "2019 {} {}".format(date, times[0]), "%Y %d %b %H:%M"
+                )
+                local_datetime = pytz.timezone("Europe/London").localize(local_datetime)
+                local_datetime = local_datetime.astimezone(pytz.utc)
+
                 cur.execute(
                     "INSERT INTO performances (show_id, datetime_utc) VALUES (%s, %s) "
-                    + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING "
-                    + "RETURNING id",
-                    (show_id, datetime_utc),
+                    + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING",
+                    (show_id, local_datetime),
                 )
-                performance_id = cur.fetchone()[0]
-                if available_or_sold_out == "sold_out":
+        else:
+            if dates:
+                some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
+                for datetime_utc, available_or_sold_out in lookup_shows(
+                    edfringe_url, some_date
+                ):
                     cur.execute(
-                        "INSERT INTO sold_out (performance_id) VALUES (%s) "
-                        + "ON CONFLICT ON CONSTRAINT sold_out_performance_id_key DO NOTHING",
-                        (performance_id,),
+                        "INSERT INTO performances (show_id, datetime_utc) VALUES (%s, %s) "
+                        + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING "
+                        + "RETURNING id",
+                        (show_id, datetime_utc),
                     )
+                    performance_id = cur.fetchone()[0]
+                    if available_or_sold_out == "sold_out":
+                        cur.execute(
+                            "INSERT INTO sold_out (performance_id) VALUES (%s) "
+                            + "ON CONFLICT ON CONSTRAINT sold_out_performance_id_key DO NOTHING",
+                            (performance_id,),
+                        )
 
 
 def wait_for(fn):

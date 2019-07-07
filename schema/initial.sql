@@ -55,3 +55,9 @@ CREATE TABLE IF NOT EXISTS shares (
   shared_with_email VARCHAR,
   UNIQUE(shared_by, shared_with_email)
 );
+
+CREATE TABLE IF NOT EXISTS sold_out (
+  id SERIAL PRIMARY KEY,
+  performance_id INTEGER REFERENCES performances(id),
+  UNIQUE(performance_id)
+);

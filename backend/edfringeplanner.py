@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from multiprocessing import Process
 from urllib.parse import urlparse, urljoin
 
 import flask
@@ -28,7 +29,7 @@ from events import (
     unset_performance_interest,
     bin_pack_events,
 )
-from importer import import_from_url
+from importer import import_from_url_from_config
 
 config = Config.from_env()
 
@@ -434,7 +435,7 @@ def import_csv():
         if row is None:
             raise ValueError("Unknown import token: {}".format(import_token))
         uid = row[0]
-        import_from_url(cur, uid, url)
+    Process(target=import_from_url_from_config, args=(config, uid, url)).start()
 
     return "OK"
 

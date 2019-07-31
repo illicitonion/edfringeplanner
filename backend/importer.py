@@ -203,6 +203,11 @@ def import_from_url(cur, user_id, url):
     return import_from_iter(cur, user_id, it)
 
 
+def import_from_url_from_config(config, user_id, url):
+    with cursor(config) as cur:
+        return import_from_url(cur, user_id, url)
+
+
 def main(cur, user_id, path_or_url):
     if path_or_url.startswith("http"):
         return import_from_url(cur, user_id, path_or_url)

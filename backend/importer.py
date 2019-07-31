@@ -126,10 +126,11 @@ def import_from_iter(cur, user_id, it):
                     edfringe_url, some_date
                 ):
                     cur.execute(
-                        "INSERT INTO performances (show_id, datetime_utc) VALUES (%s, %s) "
-                        + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING "
+                        "INSERT INTO performances (show_id, datetime_utc) VALUES (%(show_id)s, %(datetime_utc)s) "
+                        + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key "
+                        + "DO UPDATE SET show_id = EXCLUDED.show_id "
                         + "RETURNING id",
-                        (show_id, datetime_utc),
+                        dict(show_id=show_id, datetime_utc=datetime_utc),
                     )
                     performance_id = cur.fetchone()[0]
                     if available_or_sold_out == "sold_out":

@@ -246,12 +246,13 @@ def load_events(config, user_id, date, filter: Filter, hydrate_shares, email=Non
     with cursor(config) as cur:
         # TODO: Filter on start/end time?
         cur.execute(
-            "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_performance_interests.interest "
+            "SELECT shows.id, shows.title, shows.category, shows.duration, shows.edfringe_url, performances.datetime_utc, venues.name, venues.latlong, interests.interest, performances.id, user_performance_interests.interest, sold_out.id "
             + "FROM shows INNER JOIN performances ON shows.id = performances.show_id "
             + "INNER JOIN venues ON shows.venue_id = venues.id "
             + "INNER JOIN interests ON shows.id = interests.show_id "
             + "INNER JOIN users ON users.id = interests.user_id "
             + "LEFT JOIN (SELECT * FROM performance_interests WHERE user_id = %(user_id)s) user_performance_interests ON performances.id = user_performance_interests.performance_id "
+            + "LEFT JOIN sold_out ON sold_out.performance_id = performances.id "
             + "WHERE users.id = %(user_id)s "
             + "AND performances.datetime_utc > users.start_datetime_utc AND performances.datetime_utc < users.end_datetime_utc "
             + "ORDER BY performances.datetime_utc ASC, shows.title ASC",
@@ -272,6 +273,7 @@ def load_events(config, user_id, date, filter: Filter, hydrate_shares, email=Non
                 show_interest,
                 performance_id,
                 performance_interest,
+                sold_out_id,
             ) = row
             start_edinburgh = datetime_utc.astimezone(pytz.timezone("Europe/London"))
             end_edinburgh = start_edinburgh + duration
@@ -301,9 +303,12 @@ def load_events(config, user_id, date, filter: Filter, hydrate_shares, email=Non
                 shared_interests=frozenset(shared_interests[performance_id]),
                 user_email=email,
             )
-            events.append(event)
             if event.booked:
                 booked_events.append(event)
+            else:
+                if sold_out_id is not None:
+                    continue
+            events.append(event)
 
     def maybe_last_chance(event):
         return (

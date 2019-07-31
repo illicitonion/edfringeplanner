@@ -12,6 +12,8 @@ from db import cursor
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+from fetcher import fetch_multitime, check_soldout_for_single_time
+
 
 def parse_time(human):
     parts = human.split()
@@ -119,81 +121,11 @@ def import_from_iter(cur, user_id, it):
                     + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING",
                     (show_id, local_datetime),
                 )
+                check_soldout_for_single_time(cur, show_id)
         else:
             if dates:
                 some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
-                for datetime_utc, available_or_sold_out in lookup_shows(
-                    edfringe_url, some_date
-                ):
-                    cur.execute(
-                        "INSERT INTO performances (show_id, datetime_utc) VALUES (%(show_id)s, %(datetime_utc)s) "
-                        + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key "
-                        + "DO UPDATE SET show_id = EXCLUDED.show_id "
-                        + "RETURNING id",
-                        dict(show_id=show_id, datetime_utc=datetime_utc),
-                    )
-                    performance_id = cur.fetchone()[0]
-                    if available_or_sold_out == "sold_out":
-                        cur.execute(
-                            "INSERT INTO sold_out (performance_id) VALUES (%s) "
-                            + "ON CONFLICT ON CONSTRAINT sold_out_performance_id_key DO NOTHING",
-                            (performance_id,),
-                        )
-
-
-def wait_for(fn):
-    condition = False
-    count = 0
-    while not condition:
-        val, condition = fn()
-        count += 1
-        if count > 500:
-            raise ValueError("Condition didn't become true")
-        time.sleep(0.05)
-    return val
-
-
-def lookup_shows(edfringe_url, some_date_dd_mm_yyyy):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    driver = webdriver.Chrome(options=chrome_options)
-    try:
-        url = "https://tickets.edfringe.com{}?step=times&day={}".format(
-            edfringe_url, some_date_dd_mm_yyyy
-        )
-        driver.get(url)
-
-        def find_dates():
-            day_links = driver.find_elements_by_css_selector(
-                ".event-dates:first-of-type a.date"
-            )
-            return day_links, day_links
-
-        day_links = wait_for(find_dates)
-        days = [(link.text, link.get_property("href")) for link in day_links]
-        for day, href in days:
-            driver.get(href)
-
-            def find_links():
-                links = driver.find_elements_by_css_selector(
-                    ".times-panel:first-of-type a"
-                )
-                return links, links and all(link.text for link in links)
-
-            links = wait_for(find_links)
-            for link in links:
-                time_str = link.text
-                soldout = "tickets-soldout" in link.get_attribute("class").split(" ")
-                local = datetime.datetime.strptime(
-                    "2019 08 {:02d} {}".format(int(day), time_str), "%Y %m %d %H:%M"
-                )
-                local = pytz.timezone("Europe/London").localize(local)
-                yield (
-                    local.astimezone(pytz.utc),
-                    "sold_out" if soldout else "available",
-                )
-    finally:
-        driver.quit()
+                fetch_multitime(cur, show_id, some_date)
 
 
 def import_from_url(cur, user_id, url):

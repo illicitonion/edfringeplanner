@@ -109,7 +109,11 @@ def lookup_day_links(driver, edfringe_url, some_date_dd_mm_yyyy):
         )
         return day_links, day_links
 
-    day_links = wait_for(find_dates)
+    try:
+        day_links = wait_for(find_dates)
+    except ValueError:
+        print("Found no day links for show {}".format(edfringe_url))
+        return []
     return day_links
 
 

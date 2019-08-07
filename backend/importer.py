@@ -121,7 +121,7 @@ def import_from_iter(cur, user_id, it):
                     + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING",
                     (show_id, local_datetime),
                 )
-                check_soldout_for_single_time(cur, show_id)
+            check_soldout_for_single_time(cur, show_id)
         else:
             if dates:
                 some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))

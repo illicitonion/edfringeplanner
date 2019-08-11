@@ -1,7 +1,6 @@
 import csv
 import datetime
 import sys
-import time
 
 import psycopg2
 import pytz
@@ -9,8 +8,6 @@ import requests
 
 from config import Config
 from db import cursor
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 
 from fetcher import fetch_multitime, check_soldout_for_single_time
 

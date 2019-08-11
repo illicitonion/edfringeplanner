@@ -50,6 +50,13 @@ def lookup_venue_id(cur: psycopg2.extensions.cursor, name):
 
 
 def import_from_iter(cur, user_id, it):
+    cur.execute(
+        "SELECT id, show_id FROM interests WHERE user_id = %s AND interest != 'Booked'",
+        (user_id,),
+    )
+    rows = cur.fetchall()
+    existing_interests = {row[1]: row[0] for row in rows}
+
     reader = csv.reader(it, delimiter="\t")
     headings = tuple(next(reader))
     want_headings = (
@@ -105,6 +112,8 @@ def import_from_iter(cur, user_id, it):
             (show_id, user_id, "Like"),
         )
 
+        existing_interests.pop(show_id, None)
+
         if len(times) == 1:
             for date in dates:
                 local_datetime = datetime.datetime.strptime(
@@ -123,6 +132,9 @@ def import_from_iter(cur, user_id, it):
             if dates:
                 some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
                 fetch_multitime(cur, show_id, some_date)
+
+    for interest_id in existing_interests.values():
+        cur.execute("DELETE FROM interests WHERE id = %s AND user_id = %s", (interest_id, user_id))
 
 
 def import_from_url(cur, user_id, url):

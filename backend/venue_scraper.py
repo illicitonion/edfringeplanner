@@ -1,5 +1,6 @@
 from selenium import webdriver
 
+from config import Config
 from db import cursor
 
 
@@ -29,8 +30,12 @@ def get_venues():
 venues = tuple(get_venues())
 
 
-with cursor() as cur:
+with cursor(Config.from_env()) as cur:
+    cur.execute("SELECT edfringe_number FROM venues")
+    existing = {row[0] for row in cur.fetchall()}
     for venue in sorted(venues):
+        if venue[0] in existing:
+            continue
         print(
             cur.mogrify(
                 "INSERT INTO venues (edfringe_number, name, address, latlong) VALUES (%s, %s, %s, POINT%s)",

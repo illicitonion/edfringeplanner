@@ -90,6 +90,9 @@ def import_from_iter(cur, user_id, it):
         times = times_str.split(", ")
         dates = dates_str.split(", ")
 
+        cur.execute("SELECT id FROM shows WHERE edfringe_url = %s", (edfringe_url,))
+        show_already_exists = cur.rowcount > 0
+
         # Trust existing data, as updates are more likely to be bogus than existing imported data.
         cur.execute(
             "INSERT INTO shows (edfringe_url, title, category, venue_id, duration) "
@@ -114,27 +117,33 @@ def import_from_iter(cur, user_id, it):
 
         existing_interests.pop(show_id, None)
 
-        if len(times) == 1:
-            for date in dates:
-                local_datetime = datetime.datetime.strptime(
-                    "2019 {} {}".format(date, times[0]), "%Y %d %b %H:%M"
-                )
-                local_datetime = pytz.timezone("Europe/London").localize(local_datetime)
-                local_datetime = local_datetime.astimezone(pytz.utc)
+        if not show_already_exists:
+            if len(times) == 1:
+                for date in dates:
+                    local_datetime = datetime.datetime.strptime(
+                        "2019 {} {}".format(date, times[0]), "%Y %d %b %H:%M"
+                    )
+                    local_datetime = pytz.timezone("Europe/London").localize(
+                        local_datetime
+                    )
+                    local_datetime = local_datetime.astimezone(pytz.utc)
 
-                cur.execute(
-                    "INSERT INTO performances (show_id, datetime_utc) VALUES (%s, %s) "
-                    + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING",
-                    (show_id, local_datetime),
-                )
-            check_soldout_for_single_time(cur, show_id)
-        else:
-            if dates:
-                some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
-                fetch_multitime(cur, show_id, some_date)
+                    cur.execute(
+                        "INSERT INTO performances (show_id, datetime_utc) VALUES (%s, %s) "
+                        + "ON CONFLICT ON CONSTRAINT performances_show_id_datetime_utc_key DO NOTHING",
+                        (show_id, local_datetime),
+                    )
+                check_soldout_for_single_time(cur, show_id)
+            else:
+                if dates:
+                    some_date = "{:02d}-08-2019".format(int(dates[0].split(" ")[0]))
+                    fetch_multitime(cur, show_id, some_date)
 
     for interest_id in existing_interests.values():
-        cur.execute("DELETE FROM interests WHERE id = %s AND user_id = %s", (interest_id, user_id))
+        cur.execute(
+            "DELETE FROM interests WHERE id = %s AND user_id = %s",
+            (interest_id, user_id),
+        )
 
 
 def import_from_url(cur, user_id, url):
